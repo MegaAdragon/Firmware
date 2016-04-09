@@ -46,6 +46,7 @@
 #include <commander/px4_custom_mode.h>
 #include <lib/geo/geo.h>
 #include <uORB/uORB.h>
+#include <uORB/topics/adc_sonar.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_gps_position.h>
@@ -2818,6 +2819,66 @@ protected:
 	}
 };
 
+class MavlinkStreamSonar: public MavlinkStream
+{
+public:
+    const char *get_name() const
+    {
+        return MavlinkStreamSonar::get_name_static();
+    }
+    
+    static const char *get_name_static()
+    {
+        return "SONAR";
+    }
+    
+    uint8_t get_id()
+    {
+        return MAVLINK_MSG_ID_SONAR;
+    }
+    
+    static MavlinkStream *new_instance(Mavlink *mavlink)
+    {
+        return new MavlinkStreamSonar(mavlink);
+    }
+    
+    unsigned get_size()
+    {
+        return MAVLINK_MSG_ID_SONAR + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+    }
+    
+private:
+    MavlinkOrbSubscription *_sub;
+    uint64_t _sonar_time;
+    
+    /* do not allow top copying this class */
+    MavlinkStreamSonar(MavlinkStreamSonar &);
+    MavlinkStreamSonar& operator = (const MavlinkStreamSonar &);
+    
+protected:
+    explicit MavlinkStreamSonar(Mavlink *mavlink) : MavlinkStream(mavlink),
+    _sub(_mavlink->add_orb_subscription(ORB_ID(adc_sonar))),
+    _sonar_time(0)
+    {}
+    
+    void send(const hrt_abstime t)
+    {
+        struct adc_sonar_s sonar;
+        
+        if (_sub->update(&_sonar_time, &sonar)) {
+            
+            mavlink_sonar_t msg;
+            
+            msg.usec = sonar.timestamp;
+            msg.raw_value = sonar.raw_value;
+            msg.distance = sonar.distance;
+            msg.id = sonar.id;
+        
+            _mavlink->send_message(MAVLINK_MSG_ID_SONAR, &msg);
+        }
+    }
+};
+
 const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static),
 	new StreamListItem(&MavlinkStreamStatustext::new_instance, &MavlinkStreamStatustext::get_name_static),
@@ -2858,5 +2919,7 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamDistanceSensor::new_instance, &MavlinkStreamDistanceSensor::get_name_static),
 	new StreamListItem(&MavlinkStreamExtendedSysState::new_instance, &MavlinkStreamExtendedSysState::get_name_static),
 	new StreamListItem(&MavlinkStreamAltitude::new_instance, &MavlinkStreamAltitude::get_name_static),
+    new StreamListItem(&MavlinkStreamSonar::new_instance, &MavlinkStreamSonar::get_name_static),
+    
 	nullptr
 };
