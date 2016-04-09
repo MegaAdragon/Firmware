@@ -46,6 +46,8 @@
 #include <poll.h>
 #include <string.h>
 
+#include <sys/types.h>
+
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -54,7 +56,46 @@ __EXPORT int px4_simple_app_main(int argc, char *argv[]);
 
 int px4_simple_app_main(int argc, char *argv[])
 {
+    int i;
+    
+    size_t readsize;
+    ssize_t nbytes;
+    struct adc_msg_s sample[10];
 	PX4_INFO("Hello Sky!");
+    
+    
+    int fd = open("/dev/adc0", O_RDONLY);
+    if (fd < 0)
+    {
+        PX4_ERR("ADC Open failed");
+    }
+    
+    PX4_INFO("ADC!");
+    
+    readsize = 10 * sizeof(struct adc_msg_s);
+    nbytes = read(fd, sample, readsize);
+    
+    if(nbytes > 0) {
+        int nsamples = nbytes / sizeof(struct adc_msg_s);
+        if (nsamples * sizeof(struct adc_msg_s) != nbytes)
+        {
+            PX4_INFO("adc_main: read size=%d is not a multiple of sample size=%d, Ignoring\n",
+                    nbytes, sizeof(struct adc_msg_s));
+        }
+        else
+        {
+            PX4_INFO("Sample:\n");
+            for (i = 0; i < nsamples ; i++)
+            {
+                PX4_INFO("%d: channel: %d value: %d\n",
+                        i, sample[i].am_channel, sample[i].am_data);
+            }
+        }
+
+    }
+    else {
+        PX4_ERR("ADC read failed");
+    }
 
 	/* subscribe to sensor_combined topic */
 	int sensor_sub_fd = orb_subscribe(ORB_ID(sensor_combined));

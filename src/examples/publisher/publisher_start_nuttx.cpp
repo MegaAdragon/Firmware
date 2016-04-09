@@ -41,15 +41,17 @@
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
 
-extern bool thread_running;
-int daemon_task;             /**< Handle of deamon task / thread */
+#include "pub.h"
+
+extern bool pub_thread_running;
+
+/* TODO: Do I have to use global variables here ? */
+int pub_daemon_task;             /**< Handle of deamon task / thread */
 namespace px4
 {
-bool task_should_exit = false;
+bool pub_task_should_exit = false;
 }
 using namespace px4;
-
-extern int main(int argc, char **argv);
 
 extern "C" __EXPORT int publisher_main(int argc, char *argv[]);
 int publisher_main(int argc, char *argv[])
@@ -60,31 +62,31 @@ int publisher_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (thread_running) {
+		if (pub_thread_running) {
 			warnx("already running");
 			/* this is not an error */
 			exit(0);
 		}
 
-		task_should_exit = false;
+		pub_task_should_exit = false;
 
-		daemon_task = px4_task_spawn_cmd("publisher",
+		pub_daemon_task = px4_task_spawn_cmd("publisher",
 						 SCHED_DEFAULT,
 						 SCHED_PRIORITY_MAX - 5,
 						 2000,
-						 main,
+						 pub_main,
 						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
 
 		exit(0);
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		task_should_exit = true;
+		pub_task_should_exit = true;
 		exit(0);
 	}
 
 	if (!strcmp(argv[1], "status")) {
-		if (thread_running) {
+		if (pub_thread_running) {
 			warnx("is running");
 
 		} else {

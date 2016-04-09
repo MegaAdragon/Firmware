@@ -45,6 +45,9 @@
 
 #include <drivers/drv_orb_dev.h>
 
+#include "topics/adc_sonar.h"
+ORB_DEFINE(adc_sonar, struct adc_sonar_s);
+
 #include "topics/sensor_mag.h"
 ORB_DEFINE(sensor_mag, struct sensor_mag_s);
 

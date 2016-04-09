@@ -38,19 +38,20 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 #include "publisher_example.h"
+#include "pub.h"
 
-bool thread_running = false;     /**< Deamon status flag */
+bool pub_thread_running = false;     /**< Deamon status flag */
 
-int main(int argc, char **argv)
+int pub_main(int argc, char **argv)
 {
 	px4::init(argc, argv, "publisher");
 
 	PX4_INFO("starting");
 	PublisherExample p;
-	thread_running = true;
+	pub_thread_running = true;
 	p.main();
 
 	PX4_INFO("exiting.");
-	thread_running = false;
+	pub_thread_running = false;
 	return 0;
 }

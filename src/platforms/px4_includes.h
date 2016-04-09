@@ -78,6 +78,7 @@
 #include <nuttx/config.h>
 #include <uORB/uORB.h>
 #ifdef __cplusplus
+#include <platforms/nuttx/px4_messages/px4_adc_sonar.h>
 #include <platforms/nuttx/px4_messages/px4_rc_channels.h>
 #include <platforms/nuttx/px4_messages/px4_vehicle_attitude_setpoint.h>
 #include <platforms/nuttx/px4_messages/px4_manual_control_setpoint.h>

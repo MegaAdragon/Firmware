@@ -41,13 +41,16 @@
 
 #include "publisher_example.h"
 
+struct adc_msg_s {
+    uint8_t      am_channel;               /* The 8-bit ADC Channel */
+    int32_t      am_data;                  /* ADC convert result (4 bytes) */
+} __attribute__((packed));
+
 using namespace px4;
 
 PublisherExample::PublisherExample() :
 	_n(appState),
-	_rc_channels_pub(_n.advertise<px4_rc_channels>()),
-	_v_att_pub(_n.advertise<px4_vehicle_attitude>()),
-	_parameter_update_pub(_n.advertise<px4_parameter_update>())
+	_adc_sonar_pub(_n.advertise<px4_adc_sonar>())
 {
 }
 
@@ -55,29 +58,63 @@ px4::AppState PublisherExample::appState;
 
 int PublisherExample::main()
 {
+    size_t readsize;
+    ssize_t nbytes;
+    struct adc_msg_s sample[10];
+    
+    int fd = open("/dev/adc0", O_RDONLY);
+    if (fd < 0)
+    {
+        PX4_ERR("ADC Open failed");
+    }
+    
 	px4::Rate loop_rate(10);
 
 	while (!appState.exitRequested()) {
 		loop_rate.sleep();
 		_n.spinOnce();
+        
+        readsize = 10 * sizeof(struct adc_msg_s);
+        nbytes = read(fd, sample, readsize);
+        
 
 		/* Publish example message */
-		px4_rc_channels rc_channels_msg;
-		rc_channels_msg.data().timestamp_last_valid = px4::get_time_micros();
-		PX4_INFO("rc: %" PRIu64, rc_channels_msg.data().timestamp_last_valid);
-		_rc_channels_pub->publish(rc_channels_msg);
-
-		/* Publish example message */
-		px4_vehicle_attitude v_att_msg;
-		v_att_msg.data().timestamp = px4::get_time_micros();
-		PX4_INFO("att: %" PRIu64, v_att_msg.data().timestamp);
-		_v_att_pub->publish(v_att_msg);
-
-		/* Publish example message */
-		px4_parameter_update parameter_update_msg;
-		parameter_update_msg.data().timestamp = px4::get_time_micros();
-		PX4_INFO("param update: %" PRIu64, parameter_update_msg.data().timestamp);
-		_parameter_update_pub->publish(parameter_update_msg);
+		px4_adc_sonar adc_sonar_msg;
+		adc_sonar_msg.data().timestamp = px4::get_time_micros();
+        
+        if(nbytes > 0) {
+            int nsamples = nbytes / sizeof(struct adc_msg_s);
+            if (nsamples * sizeof(struct adc_msg_s) != nbytes)
+            {
+                PX4_INFO("adc_main: read size=%d is not a multiple of sample size=%d, Ignoring\n",
+                         nbytes, sizeof(struct adc_msg_s));
+            }
+            else
+            {
+                for (int i = 0; i < nsamples ; i++)
+                {
+                 /*
+                    PX4_INFO("%d: channel: %d value: %d\n",
+                             i, sample[i].am_channel, sample[i].am_data);
+                  */
+                     
+                    if(sample[i].am_channel == 14)
+                    {
+                        
+                         //PX4_INFO("%d: channel: %d value: %d\n", i, sample[i].am_channel, sample[i].am_data);
+                        
+                        adc_sonar_msg.data().data = sample[i].am_data;
+                    }
+                }
+            }
+            
+        }
+        else {
+            PX4_ERR("ADC read failed");
+        }
+        
+		//PX4_INFO("adc sonar: %" PRIu64, adc_sonar_msg.data().timestamp);
+		_adc_sonar_pub->publish(adc_sonar_msg);
 
 	}
 
