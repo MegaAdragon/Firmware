@@ -70,8 +70,8 @@ struct log_ATT_s {
 /* --- SON - SONAR VALUE --- */
 #define LOG_SON_MSG 60
 struct log_SON_s {
+    int32_t raw_value;
     float distance;
-    uint16_t id;
 };
 
 /* --- ATSP - ATTITUDE SET POINT --- */
@@ -673,7 +673,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(RPL2, "QQLLiMMfffffffM", "Tpos,Tvel,lat,lon,alt,fix,nsats,eph,epv,sacc,v,vN,vE,vD,v_val"),
 	LOG_FORMAT(RPL3, "QffffIB", "Tflow,fx,fy,gx,gy,delT,qual"),
 	LOG_FORMAT(RPL4, "Qf", "Trng,rng"),
-    LOG_FORMART(SON, "fH", "distance, id"),
+    LOG_FORMAT(SON, "if", "raw_value, distance"),
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */
 	LOG_FORMAT(TIME, "Q", "StartTime"),

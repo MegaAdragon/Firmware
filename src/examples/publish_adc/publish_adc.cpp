@@ -101,9 +101,11 @@ int ADCPublisher::main()
                     if(sample[i].am_channel == 14)
                     {
                         
-                         //PX4_INFO("%d: channel: %d value: %d\n", i, sample[i].am_channel, sample[i].am_data);
+                        //PX4_INFO("%d: channel: %d value: %d\n", i, sample[i].am_channel, sample[i].am_data);
                         
-                        adc_sonar_msg.data().data = sample[i].am_data;
+                        adc_sonar_msg.data().id = 1;
+                        adc_sonar_msg.data().raw_value = sample[i].am_data;
+                        adc_sonar_msg.data().distance = (sample[i].am_data/6.4) * 2.54;
                     }
                 }
             }

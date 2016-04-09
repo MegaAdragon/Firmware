@@ -1303,7 +1303,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.innov_sub = -1;
 	subs.cam_trig_sub = -1;
 	subs.replay_sub = -1;
-    subs.adc_sonar_sonar = -1;
+    subs.adc_sonar_sub = -1;
 
 	/* add new topics HERE */
 
@@ -2131,8 +2131,9 @@ int sdlog2_thread_main(int argc, char *argv[])
 		}
 
         /* --- ADC SONAR --- */
-        if(copy_if_upadted(ORB_ID(adc_sonar_msg), &subs.adc_sonar_sub, &buf.adc_sonar)) {
+        if(copy_if_updated(ORB_ID(adc_sonar), &subs.adc_sonar_sub, &buf.adc_sonar)) {
             log_msg.msg_type = LOG_SON_MSG;
+            log_msg.body.log_SON.raw_value = buf.adc_sonar.raw_value;
             log_msg.body.log_SON.distance = buf.adc_sonar.distance;
             LOGBUFFER_WRITE_AND_COUNT(SON);
         }
