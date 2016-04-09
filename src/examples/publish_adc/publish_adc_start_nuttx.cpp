@@ -32,25 +32,70 @@
  ****************************************************************************/
 
 /**
- * @file publisher_main.cpp
- * Example publisher for ros and px4
+ * @file publish_adc_start_nuttx.cpp
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Dominik Zipperle
  */
-#include "publisher_example.h"
+#include <string.h>
+#include <cstdlib>
+#include <systemlib/err.h>
+#include <systemlib/systemlib.h>
 
-bool thread_running = false;     /**< Deamon status flag */
+#include "publish_adc.h"
 
-int main(int argc, char **argv)
+extern bool pub_thread_running;
+
+/* TODO: Do I have to use global variables here ? */
+int pub_daemon_task;             /**< Handle of deamon task / thread */
+namespace px4
 {
-	px4::init(argc, argv, "publisher");
+bool pub_task_should_exit = false;
+}
+using namespace px4;
 
-	PX4_INFO("starting");
-	PublisherExample p;
-	thread_running = true;
-	p.main();
+extern "C" __EXPORT int publish_adc_main(int argc, char *argv[]);
+int publish_adc_main(int argc, char *argv[])
+{
+	if (argc < 2) {
+		errx(1, "usage: publish_adc {start|stop|status}");
+	}
 
-	PX4_INFO("exiting.");
-	thread_running = false;
-	return 0;
+	if (!strcmp(argv[1], "start")) {
+
+		if (pub_thread_running) {
+			warnx("already running");
+			/* this is not an error */
+			exit(0);
+		}
+
+		pub_task_should_exit = false;
+
+		pub_daemon_task = px4_task_spawn_cmd("publish_adc",
+						 SCHED_DEFAULT,
+						 SCHED_PRIORITY_MAX - 5,
+						 2000,
+						 pub_main,
+						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
+
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "stop")) {
+		pub_task_should_exit = true;
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "status")) {
+		if (pub_thread_running) {
+			warnx("is running");
+
+		} else {
+			warnx("not started");
+		}
+
+		exit(0);
+	}
+
+	warnx("unrecognized command");
+	return 1;
 }

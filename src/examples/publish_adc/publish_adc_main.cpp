@@ -32,25 +32,25 @@
  ****************************************************************************/
 
 /**
- * @file publisher_main.cpp
- * Example publisher for ros and px4
+ * @file publish_adc_main.cpp
+ * main function for publish_adc
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Dominik Zipperle
  */
-#include "publisher_example.h"
+#include "publish_adc.h"
 
-bool thread_running = false;     /**< Deamon status flag */
+bool pub_thread_running = false;     /**< Deamon status flag */
 
-int main(int argc, char **argv)
+int pub_main(int argc, char **argv)
 {
-	px4::init(argc, argv, "publisher");
+	px4::init(argc, argv, "publish_adc");
 
 	PX4_INFO("starting");
-	PublisherExample p;
-	thread_running = true;
+	ADCPublisher p;
+	pub_thread_running = true;
 	p.main();
 
 	PX4_INFO("exiting.");
-	thread_running = false;
+	pub_thread_running = false;
 	return 0;
 }

@@ -31,13 +31,13 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE examples__publisher
-	MAIN publisher
-	STACK 1200
+	MODULE examples__publish_adc
+	MAIN publish_adc
+	STACK_MAIN 1200
 	SRCS
-		publisher_main.cpp
-		publisher_start_nuttx.cpp
-		publisher_example.cpp
+		publish_adc_main.cpp
+		publish_adc_start_nuttx.cpp
+		publish_adc.cpp
 	DEPENDS
 		platforms__common
 	)

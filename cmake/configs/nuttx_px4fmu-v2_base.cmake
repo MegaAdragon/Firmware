@@ -160,7 +160,7 @@ set(config_module_list
 	# Hardware test
 	#examples/hwtest
 
-    examples/publisher
+    examples/publish_adc
     examples/subscriber
 )
 
