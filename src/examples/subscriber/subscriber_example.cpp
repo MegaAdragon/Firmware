@@ -45,7 +45,9 @@ using namespace px4;
 
 void adc_sonar_callback_function(const px4_adc_sonar &msg)
 {
-	PX4_INFO("I heard: [%" PRIu64 "] + [%d]", msg.data().timestamp, msg.data().data);
+	PX4_INFO("I heard: [%" PRIu64 "] + [%f]", msg.data().timestamp, double(msg.data().distance));
+    
+    /* TODO: Do something with the sonar value */
 }
 
 SubscriberExample::SubscriberExample() :
@@ -63,23 +65,5 @@ SubscriberExample::SubscriberExample() :
 	/* Function */
 	_n.subscribe<px4_adc_sonar>(adc_sonar_callback_function, _p_sub_interv.get());
 
-	/* No callback */
-	_sub_adc_chan = _n.subscribe<px4_adc_sonar>(500);
-
-	/* Class method */
-	_n.subscribe<px4_adc_sonar>(&SubscriberExample::adc_sonar_callback, this, 1000);
-
 	PX4_INFO("subscribed");
-}
-
-/**
- * This tutorial demonstrates simple receipt of messages over the PX4 middleware system.
- * Also the current value of the _sub_rc_chan subscription is printed
- */
-void SubscriberExample::adc_sonar_callback(const px4_adc_sonar &msg)
-{
-	PX4_INFO("rc_channels_callback (method): [%" PRIu64 "]",
-		 msg.data().timestamp);
-	PX4_INFO("rc_channels_callback (method): value of _sub_rc_chan: [%" PRIu64 "]",
-		 _sub_adc_chan->data().timestamp);
 }
