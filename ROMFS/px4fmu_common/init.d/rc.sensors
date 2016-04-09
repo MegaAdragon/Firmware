@@ -26,6 +26,7 @@ fi
 
 if adc start
 then
+    publish_adc start
 fi
 
 if ver hwcmp PX4FMU_V2
