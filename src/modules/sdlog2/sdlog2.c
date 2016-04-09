@@ -70,6 +70,7 @@
 #include <time.h>
 
 #include <uORB/uORB.h>
+#include <uORB/topics/adc_sonar.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -1156,6 +1157,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct ekf2_innovations_s innovations;
 		struct camera_trigger_s camera_trigger;
 		struct ekf2_replay_s replay;
+        struct adc_sonar_s adc_sonar;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -1213,6 +1215,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_EST6_s log_INO3;
 			struct log_RPL3_s log_RPL3;
 			struct log_RPL4_s log_RPL4;
+            struct log_SON_s log_SON;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1260,6 +1263,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int innov_sub;
 		int cam_trig_sub;
 		int replay_sub;
+        int adc_sonar_sub;
 	} subs;
 
 	subs.cmd_sub = -1;
@@ -1299,6 +1303,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.innov_sub = -1;
 	subs.cam_trig_sub = -1;
 	subs.replay_sub = -1;
+    subs.adc_sonar_sonar = -1;
 
 	/* add new topics HERE */
 
@@ -2124,6 +2129,13 @@ int sdlog2_thread_main(int argc, char *argv[])
 			log_msg.body.log_CAMT.seq = buf.camera_trigger.seq;
 			LOGBUFFER_WRITE_AND_COUNT(CAMT);
 		}
+
+        /* --- ADC SONAR --- */
+        if(copy_if_upadted(ORB_ID(adc_sonar_msg), &subs.adc_sonar_sub, &buf.adc_sonar)) {
+            log_msg.msg_type = LOG_SON_MSG;
+            log_msg.body.log_SON.distance = buf.adc_sonar.distance;
+            LOGBUFFER_WRITE_AND_COUNT(SON);
+        }
 
 		pthread_mutex_lock(&logbuffer_mutex);
 
