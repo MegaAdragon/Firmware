@@ -105,7 +105,7 @@ int ADCPublisher::main()
                         
                         adc_sonar_msg.data().id = 1;
                         adc_sonar_msg.data().raw_value = sample[i].am_data;
-                        adc_sonar_msg.data().distance = (sample[i].am_data/6.4) * 2.54;
+                        adc_sonar_msg.data().distance = float(((sample[i].am_data/6.4) * 2.54)/100);
                     }
                 }
             }
