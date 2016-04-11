@@ -37,7 +37,7 @@
  *
  * @author Dominik Zipperle
  */
-#include "publish_adc.h"
+#include "publish_adc.hpp"
 
 bool pub_thread_running = false;     /**< Deamon status flag */
 

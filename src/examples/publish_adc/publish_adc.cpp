@@ -39,7 +39,7 @@
  * @author Dominik Zipperle
  */
 
-#include "publish_adc.h"
+#include "publish_adc.hpp"
 
 struct adc_msg_s {
     uint8_t      am_channel;               /* The 8-bit ADC Channel */
@@ -48,10 +48,24 @@ struct adc_msg_s {
 
 using namespace px4;
 
+
 ADCPublisher::ADCPublisher() :
+    SuperBlock(NULL, "SONAR"),
 	_n(appState),
-	_adc_sonar_pub(_n.advertise<px4_adc_sonar>())
+	_adc_sonar_pub(_n.advertise<px4_adc_sonar>()),
+    _collision_pub(_n.advertise<px4_collision>()),
+    _sonar_z_stddev(this, "SNR_Z"),
+    _sonar_z_offset(this, "SNR_OFF_Z"),
+    _sonarStats(this, ""),
+    _timeStamp(hrt_absolute_time()),
+    _time_last_sonar(0),
+    _sonarFault(FAULT_NONE),
+    // TODO: Why is this an error?
+    // kf matrices
+    _x(), _u() //, __P()
 {
+    _x.setZero();
+    _u.setZero();
 }
 
 px4::AppState ADCPublisher::appState;
@@ -106,6 +120,14 @@ int ADCPublisher::main()
                         adc_sonar_msg.data().id = 1;
                         adc_sonar_msg.data().raw_value = sample[i].am_data;
                         adc_sonar_msg.data().distance = float(((sample[i].am_data/6.4) * 2.54)/100);
+                        
+                        if (!_sonarInitialized) {
+                                sonarInit();
+                                
+                        } else {
+                                sonarCorrect(float(((sample[i].am_data/6.4) * 2.54)/100));
+                        }
+                        
                     }
                 }
             }

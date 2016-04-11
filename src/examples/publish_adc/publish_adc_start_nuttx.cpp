@@ -41,7 +41,7 @@
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
 
-#include "publish_adc.h"
+#include "publish_adc.hpp"
 
 extern bool pub_thread_running;
 

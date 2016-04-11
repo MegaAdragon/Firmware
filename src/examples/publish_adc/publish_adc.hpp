@@ -41,11 +41,47 @@
 #include <px4.h>
 #include <px4_app.h>
 
+#include <controllib/blocks.hpp>
+#include <mathlib/mathlib.h>
+#include <systemlib/perf_counter.h>
+#include <lib/geo/geo.h>
+#include <matrix/Matrix.hpp>
+
+using namespace matrix;
+using namespace control;
+
+enum fault_t {
+    FAULT_NONE = 0,
+    FAULT_MINOR,
+    FAULT_SEVERE
+};
+
+// change this to set when
+// the system will abort correcting a measurement
+// given a fault has been detected
+static const fault_t fault_lvl_disable = FAULT_SEVERE;
+
+// for fault detection
+// chi squared distribution, false alarm probability 0.0001
+// see fault_table.py
+// note skip 0 index so we can use degree of freedom as index
+static const float BETA_TABLE[7] = {0,
+    8.82050518214,
+    12.094592431,
+    13.9876612368,
+    16.0875642296,
+    17.8797700658,
+    19.6465647819,
+};
+
 int pub_main(int argc, char **argv);
 
-class ADCPublisher
+class ADCPublisher : public control::SuperBlock
 {
 public:
+    enum {X_x = 0, X_y, X_z, X_vx, X_vy, X_vz, X_bx, X_by, X_bz, X_tz, n_x};
+    enum {U_ax = 0, U_ay, U_az, n_u};
+    enum {Y_sonar_z = 0, n_y_sonar};
 	ADCPublisher();
 
 	~ADCPublisher() {};
@@ -56,4 +92,32 @@ public:
 protected:
 	px4::NodeHandle _n;
     px4::Publisher<px4::px4_adc_sonar> *_adc_sonar_pub;
+    px4::Publisher<px4::px4_collision> *_collision_pub;
+    
+private:
+    
+    // sonar
+    int  sonarMeasure(Vector<float, n_y_sonar> &y, float current_distance);
+    void sonarCorrect(float current_distance);
+    void sonarInit();
+    void sonarCheckTimeout();
+    
+    // sonar parameters
+    BlockParamFloat  _sonar_z_stddev;
+    BlockParamFloat  _sonar_z_offset;
+    
+    BlockStats<float, n_y_sonar> _sonarStats;
+    
+    uint64_t _timeStamp;
+    uint64_t _time_last_sonar;
+    
+    bool _sonarInitialized;
+    
+    fault_t _sonarFault;
+    
+    // state space
+    Vector<float, n_x>  _x; // state vector
+    Vector<float, n_u>  _u; // input vector
+    Matrix<float, n_x, n_x> __P; // state covariance matrix
+   
 };
