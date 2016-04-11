@@ -2844,7 +2844,7 @@ public:
     
     unsigned get_size()
     {
-        return MAVLINK_MSG_ID_SONAR + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+        return _sub->is_published() ? (MAVLINK_MSG_ID_SONAR_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
     }
     
 private:
