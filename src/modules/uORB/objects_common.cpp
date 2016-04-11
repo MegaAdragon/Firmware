@@ -45,6 +45,9 @@
 
 #include <drivers/drv_orb_dev.h>
 
+#include "topics/collision.h"
+ORB_DEFINE(collision, struct collision_s);
+
 #include "topics/adc_sonar.h"
 ORB_DEFINE(adc_sonar, struct adc_sonar_s);
 
