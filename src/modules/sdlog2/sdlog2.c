@@ -71,6 +71,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/adc_sonar.h>
+#include <uORB/topics/collision.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -1158,6 +1159,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct camera_trigger_s camera_trigger;
 		struct ekf2_replay_s replay;
         struct adc_sonar_s adc_sonar;
+        struct collision_s collision;
 	} buf;
 
 	memset(&buf, 0, sizeof(buf));
@@ -1216,6 +1218,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_RPL3_s log_RPL3;
 			struct log_RPL4_s log_RPL4;
             struct log_SON_s log_SON;
+            struct log_COL_s log_COL;
 		} body;
 	} log_msg = {
 		LOG_PACKET_HEADER_INIT(0)
@@ -1264,6 +1267,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int cam_trig_sub;
 		int replay_sub;
         int adc_sonar_sub;
+        int collision_sub;
 	} subs;
 
 	subs.cmd_sub = -1;
@@ -1304,6 +1308,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.cam_trig_sub = -1;
 	subs.replay_sub = -1;
     subs.adc_sonar_sub = -1;
+    subs.collision_sub = -1;
 
 	/* add new topics HERE */
 
@@ -2136,6 +2141,13 @@ int sdlog2_thread_main(int argc, char *argv[])
             log_msg.body.log_SON.raw_value = buf.adc_sonar.raw_value;
             log_msg.body.log_SON.distance = buf.adc_sonar.distance;
             LOGBUFFER_WRITE_AND_COUNT(SON);
+        }
+        
+        /* --- COLLISION --- */
+        if(copy_if_updated(ORB_ID(collision), &subs.collision_sub, &buf.collision)) {
+            log_msg.msg_type = LOG_COL_MSG;
+            log_msg.body.log_COL.front = buf.collision.front;
+            LOGBUFFER_WRITE_AND_COUNT(COL);
         }
 
 		pthread_mutex_lock(&logbuffer_mutex);

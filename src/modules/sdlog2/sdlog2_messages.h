@@ -74,6 +74,12 @@ struct log_SON_s {
     float distance;
 };
 
+/* --- COL - COLLISION VALUE --- */
+#define LOG_COL_MSG 61
+struct log_COL_s {
+    float front;
+};
+
 /* --- ATSP - ATTITUDE SET POINT --- */
 #define LOG_ATSP_MSG 3
 struct log_ATSP_s {
@@ -674,6 +680,7 @@ static const struct log_format_s log_formats[] = {
 	LOG_FORMAT(RPL3, "QffffIB", "Tflow,fx,fy,gx,gy,delT,qual"),
 	LOG_FORMAT(RPL4, "Qf", "Trng,rng"),
     LOG_FORMAT(SON, "if", "raw_value,distance"),
+    LOG_FORMAT(COL, "f", "front"),
 	/* system-level messages, ID >= 0x80 */
 	/* FMT: don't write format of format message, it's useless */
 	LOG_FORMAT(TIME, "Q", "StartTime"),
