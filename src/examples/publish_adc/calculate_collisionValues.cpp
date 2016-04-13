@@ -47,7 +47,7 @@ extern orb_advert_t mavlink_log_pub;
 
 // required number of samples for sensor
 // to initialize
-static const int 		REQ_SONAR_INIT_COUNT = 10;
+static const int 		REQ_SONAR_INIT_COUNT = 5;
 static const uint32_t 	SONAR_TIMEOUT =   1000000; // 1.0 s
 
 void ADCPublisher::sonarInit(float current_distance)
