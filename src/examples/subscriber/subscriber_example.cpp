@@ -45,7 +45,14 @@ using namespace px4;
 
 void adc_sonar_callback_function(const px4_adc_sonar &msg)
 {
-	PX4_INFO("I heard: [%" PRIu64 "] + [%f]", msg.data().timestamp, double(msg.data().distance));
+	PX4_INFO("I heard: [%" PRIu64 "] + [%5.2f]", msg.data().timestamp, double(msg.data().distance));
+    
+    /* TODO: Do something with the sonar value */
+}
+
+void collision_callback_function(const px4_collision &msg)
+{
+    PX4_INFO("COL: [%" PRIu64 "] + [%5.2f]", msg.data().timestamp, double(msg.data().front));
     
     /* TODO: Do something with the sonar value */
 }
@@ -64,6 +71,7 @@ SubscriberExample::SubscriberExample() :
 	/* Do some subscriptions */
 	/* Function */
 	_n.subscribe<px4_adc_sonar>(adc_sonar_callback_function, _p_sub_interv.get());
+    _n.subscribe<px4_collision>(collision_callback_function, _p_sub_interv.get());
 
 	PX4_INFO("subscribed");
 }
