@@ -50,6 +50,8 @@
 using namespace matrix;
 using namespace control;
 
+
+
 // for fault detection
 // chi squared distribution, false alarm probability 0.0001
 // see fault_table.py
@@ -100,9 +102,11 @@ private:
     
     bool _sonarInitialized;
     
+    static const int FILTER_LENGTH = 10;
+    
     int _maCount;
-    float _maList[5];
+    float _maList[FILTER_LENGTH];
     
     float _est_distance;
-   
+    
 };

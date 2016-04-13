@@ -65,7 +65,7 @@ ADCPublisher::ADCPublisher() :
 {
     // fill buffer for the filter with zeros
     int i;
-    for(i = 0; i<5; i++) {
+    for(i = 0; i<FILTER_LENGTH; i++) {
         _maList[i] = 0;
     }
 }

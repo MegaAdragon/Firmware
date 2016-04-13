@@ -42,17 +42,22 @@
 #include "publish_adc.hpp"
 #include <systemlib/mavlink_log.h>
 #include <matrix/math.hpp>
+#include <cmath>
 
 extern orb_advert_t mavlink_log_pub;
 
 // required number of samples for sensor
 // to initialize
-static const int 		REQ_SONAR_INIT_COUNT = 5;
+//static const int 		REQ_SONAR_INIT_COUNT = FILTER_LENGTH;
 static const uint32_t 	SONAR_TIMEOUT =   1000000; // 1.0 s
 
 void ADCPublisher::sonarInit(float current_distance)
 {
     int i;
+    
+    if(_sonarStats.getCount() <= 1) {
+        _est_distance = current_distance;
+    }
     
     // measure
     float distance = sonarMeasure(current_distance);
@@ -67,12 +72,12 @@ void ADCPublisher::sonarInit(float current_distance)
     _maList[_maCount] = distance;
     _maCount ++;
     
-    if(_maCount > 4){
+    if(_maCount > FILTER_LENGTH - 1){
         _maCount = 0;
     }
     
     // if init is finished
-    if (_sonarStats.getCount() > REQ_SONAR_INIT_COUNT) {
+    if (_sonarStats.getCount() > FILTER_LENGTH) {
         /*
          mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] sonar init "
          "mean %d cm std %d cm",
@@ -82,14 +87,16 @@ void ADCPublisher::sonarInit(float current_distance)
         
         // determine estimated distance for reference
         float sum = 0;
-        for(i=0; i<5; i++){
+        for(i=0; i<FILTER_LENGTH; i++){
             sum += float(_maList[i]);
         }
         
         if(sum > 0) {
-            _est_distance = sum / 5;
+            _est_distance = sum / FILTER_LENGTH;
         }
         else { return; } // if buffer is empty return
+        
+        PX4_INFO("init");
         
         _sonarInitialized = true;
     }
@@ -120,28 +127,30 @@ float ADCPublisher::sonarMeasure(float current_distance)
     _time_last_sonar = _timeStamp;
     
     // use fault detection only if sonar is initialized
-    if(_sonarInitialized) {
-        
-        // calculate differenz between current value and estimated value
-        double beta = abs(d - _est_distance);
-        
-        //float cov = _sub_sonar->get().covariance;
-        //TODO: use parameter here
-        
-        /*
-         normal stddev for sonar is 0.05
-         TODO: does this have to change over time?
-         
-         with stddev 0.05 -> fault detection at 0.148m
-         with stddev 0.1 -> fault detection at 0.297m
-         */
-        double stddev = 0.1f;
-        
-        // if fault is detected -> return invalid
-        if (beta > (sqrt(BETA_TABLE[n_y_sonar]) * stddev)) {
-            return -1;
-        }
+    
+    
+    
+    // calculate differenz between current value and estimated value
+    double beta = fabs(d - _est_distance);
+    
+    //float cov = _sub_sonar->get().covariance;
+    //TODO: use parameter here
+    
+    /*
+     normal stddev for sonar is 0.05
+     TODO: does this have to change over time?
+     
+     with stddev 0.05 -> fault detection at 0.148m
+     with stddev 0.1 -> fault detection at 0.297m
+     */
+    double stddev = 0.1f;
+    
+    // if fault is detected -> return invalid
+    if (beta > (sqrt(BETA_TABLE[n_y_sonar]) * stddev)) {
+        //PX4_INFO("sonar fault %5.2f | %5.2f | %5.2f | %5.2f", double(d), double(_est_distance), beta, (sqrt(BETA_TABLE[n_y_sonar]) * stddev));
+        //return -1;
     }
+    
     
     // return valid distance
     return d;
@@ -161,17 +170,17 @@ void ADCPublisher::sonarCorrect(float current_distance)
     _maList[_maCount] = distance;
     _maCount ++;
     
-    if(_maCount > 4){
+    if(_maCount > FILTER_LENGTH - 1){
         _maCount = 0;
     }
     
     float sum = 0;
-    for(i=0; i<5; i++){
+    for(i=0; i<FILTER_LENGTH; i++){
         sum += float(_maList[i]);
     }
     
     if(sum > 0) {
-        distance = sum / 5;
+        distance = sum / FILTER_LENGTH;
     }
     else {
         return;
