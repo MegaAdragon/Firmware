@@ -52,6 +52,7 @@ static const uint32_t 	SONAR_TIMEOUT =   1000000; // 1.0 s
 
 void ADCPublisher::sonarInit()
 {
+    /*
     // measure
     Vector<float, n_y_sonar> y;
     
@@ -62,21 +63,21 @@ void ADCPublisher::sonarInit()
     
     // if finished
     if (_sonarStats.getCount() > REQ_SONAR_INIT_COUNT) {
-        /*
+     
         mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] sonar init "
                                      "mean %d cm std %d cm",
                                      int(100 * _sonarStats.getMean()(0)),
                                      int(100 * _sonarStats.getStdDev()(0)));
-         */
+     
         _sonarInitialized = true;
 
         _sonarFault = FAULT_NONE;
     }
+    */
 }
 
-int ADCPublisher::sonarMeasure(Vector<float, n_y_sonar> &y, float current_distance)
+float ADCPublisher::sonarMeasure(float current_distance)
 {
-    int i;
     // measure
     float d = current_distance;
     float eps = 0.01f;
@@ -85,7 +86,7 @@ int ADCPublisher::sonarMeasure(Vector<float, n_y_sonar> &y, float current_distan
     float max_dist = _sub_sonar->get().max_distance - eps;
      */
     
-    // TODO: Fix this
+    // TODO: use parameters here
     float min_dist = float(0.2) + eps;
     float max_dist = float(6.0) - eps;
     
@@ -97,17 +98,32 @@ int ADCPublisher::sonarMeasure(Vector<float, n_y_sonar> &y, float current_distan
     // update stats
     _sonarStats.update(Scalarf(d));
     _time_last_sonar = _timeStamp;
-    y.setZero();
     
-    //TODO: WHY??
-    /*
-    y(0) = d *
-    cosf(_sub_att.get().roll) *
-    cosf(_sub_att.get().pitch);
-     */
+    float beta = d - _est_distance;
+    
+    //float cov = _sub_sonar->get().covariance;
+    //TODO: use parameter here
+    float cov = 0.025;
+
+    
+    if (beta > BETA_TABLE[n_y_sonar] * cov) {
+        return -1;
+    }
+    
+    return d;
+}
+
+void ADCPublisher::sonarCorrect(float current_distance)
+{
+    int i;
+    
+    // measure
+    float distance = sonarMeasure(current_distance);
+    
+    if (distance < 0){ return; }
     
     // use moving average
-    _maList[_maCount] = d;
+    _maList[_maCount] = distance;
     _maCount ++;
     
     if(_maCount > 4){
@@ -120,104 +136,21 @@ int ADCPublisher::sonarMeasure(Vector<float, n_y_sonar> &y, float current_distan
     }
     
     if(sum > 0) {
-        d = sum / 5;
+        distance = sum / 5;
     }
     else {
-        d = 0;
+        return;
     }
-    
-    y(0) = d;
-    return OK;
-}
-
-void ADCPublisher::sonarCorrect(float current_distance)
-{
-    // measure
-    Vector<float, n_y_sonar> y;
-    
-    if (sonarMeasure(y, current_distance) != OK) {
-         PX4_INFO("test");
-        return; }
-    
-    // do not use sonar if lidar is active
-    //if (_lidarInitialized && (_lidarFault < fault_lvl_disable)) { return; }
-    
-    // calculate covariance
-    //float cov = _sub_sonar->get().covariance;
-    //TODO: Fix this
-    float cov = 0.025;
-    
-    // sonar measurement matrix and noise matrix
-    Matrix<float, n_y_sonar, n_x> C;
-    C.setZero();
-    // y = -(z - tz)
-    // TODO could add trig to make this an EKF correction
-    //C(Y_sonar_z, X_z) = -1; // measured altitude, negative down dir.
-    C(Y_sonar_z, X_tz) = 1; // measured altitude, negative down dir.
-    
-    // covariance matrix
-    Matrix<float, n_y_sonar, n_y_sonar> R;
-    R.setZero();
-    R(0, 0) = cov;
-    
-    // residual
-    Vector<float, n_y_sonar> r = y - C * _x;
-    
-    // residual covariance, (inverse)
-    Matrix<float, n_y_sonar, n_y_sonar> S_I =
-    inv<float, n_y_sonar>(C * _scP * C.transpose() + R);
-    
-    // fault detection
-    float beta = (r.transpose()  * (S_I * r))(0, 0);
-    
-    if (beta > BETA_TABLE[n_y_sonar]) {
-        if (_sonarFault < FAULT_MINOR) {
-            _sonarFault = FAULT_MINOR;
-            //mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] sonar fault,  beta %5.2f", double(beta));
-        }
+   
+    px4::px4_collision collision_msg;
+    collision_msg.data().timestamp = px4::get_time_micros();
+    collision_msg.data().front = distance;
         
-         //PX4_INFO("test2");
+    _est_distance = distance;
+    //PX4_INFO("publish %5.2f", double(_x(X_tz)));
+    //PX4_INFO("publish2 %5.2f",double(y(0)));
         
-        // abort correction
-        //return;
-        
-    } else if (_sonarFault) {
-        _sonarFault = FAULT_NONE;
-        //mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] sonar OK");
-    }
-    
-    // kalman filter correction if no fault
-    if (_sonarFault < fault_lvl_disable) {
-        
-        // TODO: here is a problem that causes a crash
-        /*
-        Matrix<float, n_x, n_y_sonar> K =
-        _scP * C.transpose() * S_I;
-        Vector<float, n_x> dx = K * r;
-        
-        // TODO: do I need this?
-        
-        if (!_canEstimateXY) {
-            dx(X_x) = 0;
-            dx(X_y) = 0;
-            dx(X_vx) = 0;
-            dx(X_vy) = 0;
-        }
-         
-        
-        _x += dx;
-        _scP -= K * C * _scP;
-        */
-        
-         //PX4_INFO("test3");
-        px4::px4_collision collision_msg;
-        collision_msg.data().timestamp = px4::get_time_micros();
-        collision_msg.data().front = y(0);
-        //PX4_INFO("publish %5.2f", double(_x(X_tz)));
-        //PX4_INFO("publish2 %5.2f",double(y(0)));
-        
-        _collision_pub->publish(collision_msg);
-    }
+    _collision_pub->publish(collision_msg);
     
 }
 

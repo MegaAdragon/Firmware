@@ -50,17 +50,6 @@
 using namespace matrix;
 using namespace control;
 
-enum fault_t {
-    FAULT_NONE = 0,
-    FAULT_MINOR,
-    FAULT_SEVERE
-};
-
-// change this to set when
-// the system will abort correcting a measurement
-// given a fault has been detected
-static const fault_t fault_lvl_disable = FAULT_SEVERE;
-
 // for fault detection
 // chi squared distribution, false alarm probability 0.0001
 // see fault_table.py
@@ -79,8 +68,6 @@ int pub_main(int argc, char **argv);
 class ADCPublisher : public control::SuperBlock
 {
 public:
-    enum {X_x = 0, X_y, X_z, X_vx, X_vy, X_vz, X_bx, X_by, X_bz, X_tz, n_x};
-    enum {U_ax = 0, U_ay, U_az, n_u};
     enum {Y_sonar_z = 0, n_y_sonar};
 	ADCPublisher();
 
@@ -97,7 +84,7 @@ protected:
 private:
     
     // sonar
-    int  sonarMeasure(Vector<float, n_y_sonar> &y, float current_distance);
+    float sonarMeasure(float current_distance);
     void sonarCorrect(float current_distance);
     void sonarInit();
     void sonarCheckTimeout();
@@ -113,14 +100,9 @@ private:
     
     bool _sonarInitialized;
     
-    fault_t _sonarFault;
-    
     int _maCount;
     float _maList[5];
     
-    // state space
-    Vector<float, n_x>  _x; // state vector
-    Vector<float, n_u>  _u; // input vector
-    Matrix<float, n_x, n_x> _scP; // state covariance matrix
+    float _est_distance;
    
 };
