@@ -59,7 +59,7 @@ ADCPublisher::ADCPublisher() :
     _sonarStats(this, ""),
     _timeStamp(hrt_absolute_time()),
     _time_last_sonar(0),
-    _sonarInitialized(true),
+    _sonarInitialized(false),
     _maCount(0),
     _est_distance(0)
 {
@@ -108,11 +108,11 @@ int ADCPublisher::main()
             {
                 for (int i = 0; i < nsamples ; i++)
                 {
-                 /*
-                    PX4_INFO("%d: channel: %d value: %d\n",
-                             i, sample[i].am_channel, sample[i].am_data);
-                  */
-                     
+                    /*
+                     PX4_INFO("%d: channel: %d value: %d\n",
+                     i, sample[i].am_channel, sample[i].am_data);
+                     */
+                    
                     if(sample[i].am_channel == 14)
                     {
                         
@@ -123,16 +123,15 @@ int ADCPublisher::main()
                         adc_sonar_msg.data().distance = float(((sample[i].am_data/6.4) * 2.54)/100);
                         
                         if (!_sonarInitialized) {
-                                sonarInit();
-                                
+                            sonarInit(float(((sample[i].am_data/6.4) * 2.54)/100));
+                            
                         } else {
-                                sonarCorrect(float(((sample[i].am_data/6.4) * 2.54)/100));
+                            sonarCorrect(float(((sample[i].am_data/6.4) * 2.54)/100));
                         }
                         
                     }
                 }
             }
-            
         }
         else {
             PX4_ERR("ADC read failed");

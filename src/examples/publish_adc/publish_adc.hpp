@@ -86,7 +86,7 @@ private:
     // sonar
     float sonarMeasure(float current_distance);
     void sonarCorrect(float current_distance);
-    void sonarInit();
+    void sonarInit(float current_distance);
     void sonarCheckTimeout();
     
     // sonar parameters
