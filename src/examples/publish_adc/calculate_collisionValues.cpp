@@ -76,6 +76,7 @@ void ADCPublisher::sonarInit()
 
 int ADCPublisher::sonarMeasure(Vector<float, n_y_sonar> &y, float current_distance)
 {
+    int i;
     // measure
     float d = current_distance;
     float eps = 0.01f;
@@ -85,8 +86,8 @@ int ADCPublisher::sonarMeasure(Vector<float, n_y_sonar> &y, float current_distan
      */
     
     // TODO: Fix this
-    float min_dist = float(0.3) + eps;
-    float max_dist = float(7.0) - eps;
+    float min_dist = float(0.2) + eps;
+    float max_dist = float(6.0) - eps;
     
     // check for bad data
     if (d > max_dist || d < min_dist) {
@@ -104,6 +105,28 @@ int ADCPublisher::sonarMeasure(Vector<float, n_y_sonar> &y, float current_distan
     cosf(_sub_att.get().roll) *
     cosf(_sub_att.get().pitch);
      */
+    
+    // use moving average
+    _maList[_maCount] = d;
+    _maCount ++;
+    
+    if(_maCount > 4){
+        _maCount = 0;
+    }
+    
+    float sum = 0;
+    for(i=0; i<5; i++){
+        sum += float(_maList[i]);
+    }
+    
+    if(sum > 0) {
+        d = sum / 5;
+    }
+    else {
+        d = 0;
+    }
+    
+    y(0) = d;
     return OK;
 }
 
@@ -112,7 +135,9 @@ void ADCPublisher::sonarCorrect(float current_distance)
     // measure
     Vector<float, n_y_sonar> y;
     
-    if (sonarMeasure(y, current_distance) != OK) { return; }
+    if (sonarMeasure(y, current_distance) != OK) {
+         PX4_INFO("test");
+        return; }
     
     // do not use sonar if lidar is active
     //if (_lidarInitialized && (_lidarFault < fault_lvl_disable)) { return; }
@@ -120,19 +145,14 @@ void ADCPublisher::sonarCorrect(float current_distance)
     // calculate covariance
     //float cov = _sub_sonar->get().covariance;
     //TODO: Fix this
-    float cov = 0.5;
-    
-    if (cov < 1.0e-3f) {
-        // use sensor value if reasoanble
-        cov = _sonar_z_stddev.get() * _sonar_z_stddev.get();
-    }
+    float cov = 0.025;
     
     // sonar measurement matrix and noise matrix
     Matrix<float, n_y_sonar, n_x> C;
     C.setZero();
     // y = -(z - tz)
     // TODO could add trig to make this an EKF correction
-    C(Y_sonar_z, X_z) = -1; // measured altitude, negative down dir.
+    //C(Y_sonar_z, X_z) = -1; // measured altitude, negative down dir.
     C(Y_sonar_z, X_tz) = 1; // measured altitude, negative down dir.
     
     // covariance matrix
@@ -145,7 +165,7 @@ void ADCPublisher::sonarCorrect(float current_distance)
     
     // residual covariance, (inverse)
     Matrix<float, n_y_sonar, n_y_sonar> S_I =
-    inv<float, n_y_sonar>(C * __P * C.transpose() + R);
+    inv<float, n_y_sonar>(C * _scP * C.transpose() + R);
     
     // fault detection
     float beta = (r.transpose()  * (S_I * r))(0, 0);
@@ -156,8 +176,10 @@ void ADCPublisher::sonarCorrect(float current_distance)
             //mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] sonar fault,  beta %5.2f", double(beta));
         }
         
+         //PX4_INFO("test2");
+        
         // abort correction
-        return;
+        //return;
         
     } else if (_sonarFault) {
         _sonarFault = FAULT_NONE;
@@ -166,26 +188,33 @@ void ADCPublisher::sonarCorrect(float current_distance)
     
     // kalman filter correction if no fault
     if (_sonarFault < fault_lvl_disable) {
+        
+        // TODO: here is a problem that causes a crash
+        /*
         Matrix<float, n_x, n_y_sonar> K =
-        __P * C.transpose() * S_I;
+        _scP * C.transpose() * S_I;
         Vector<float, n_x> dx = K * r;
         
         // TODO: do I need this?
-        /*
+        
         if (!_canEstimateXY) {
             dx(X_x) = 0;
             dx(X_y) = 0;
             dx(X_vx) = 0;
             dx(X_vy) = 0;
         }
-         */
+         
         
         _x += dx;
-        __P -= K * C * __P;
+        _scP -= K * C * _scP;
+        */
         
+         //PX4_INFO("test3");
         px4::px4_collision collision_msg;
         collision_msg.data().timestamp = px4::get_time_micros();
-        collision_msg.data().front = current_distance;
+        collision_msg.data().front = y(0);
+        //PX4_INFO("publish %5.2f", double(_x(X_tz)));
+        //PX4_INFO("publish2 %5.2f",double(y(0)));
         
         _collision_pub->publish(collision_msg);
     }

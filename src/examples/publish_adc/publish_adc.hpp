@@ -115,9 +115,12 @@ private:
     
     fault_t _sonarFault;
     
+    int _maCount;
+    float _maList[5];
+    
     // state space
     Vector<float, n_x>  _x; // state vector
     Vector<float, n_u>  _u; // input vector
-    Matrix<float, n_x, n_x> __P; // state covariance matrix
+    Matrix<float, n_x, n_x> _scP; // state covariance matrix
    
 };

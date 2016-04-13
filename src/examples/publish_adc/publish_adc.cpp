@@ -59,11 +59,18 @@ ADCPublisher::ADCPublisher() :
     _sonarStats(this, ""),
     _timeStamp(hrt_absolute_time()),
     _time_last_sonar(0),
+    _sonarInitialized(true),
     _sonarFault(FAULT_NONE),
+    _maCount(0),
     // TODO: Why is this an error?
     // kf matrices
-    _x(), _u() //, __P()
+    _x(), _u(), _scP()
 {
+    int i;
+    for(i = 0; i<5; i++) {
+        _maList[i] = 0;
+    }
+    
     _x.setZero();
     _u.setZero();
 }
