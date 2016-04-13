@@ -57,11 +57,13 @@ void ADCPublisher::sonarInit(float current_distance)
     // measure
     float distance = sonarMeasure(current_distance);
     
+    // if distance is not valid -> reset init
     if (distance < 0) {
         _sonarStats.reset();
         return;
     }
     
+    // fill buffer with values
     _maList[_maCount] = distance;
     _maCount ++;
     
@@ -69,7 +71,7 @@ void ADCPublisher::sonarInit(float current_distance)
         _maCount = 0;
     }
     
-    // if finished
+    // if init is finished
     if (_sonarStats.getCount() > REQ_SONAR_INIT_COUNT) {
         /*
          mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] sonar init "
@@ -78,6 +80,7 @@ void ADCPublisher::sonarInit(float current_distance)
          int(100 * _sonarStats.getStdDev()(0)));
          */
         
+        // determine estimated distance for reference
         float sum = 0;
         for(i=0; i<5; i++){
             sum += float(_maList[i]);
@@ -86,9 +89,7 @@ void ADCPublisher::sonarInit(float current_distance)
         if(sum > 0) {
             _est_distance = sum / 5;
         }
-        else {
-            return;
-        }
+        else { return; } // if buffer is empty return
         
         _sonarInitialized = true;
     }
@@ -118,22 +119,31 @@ float ADCPublisher::sonarMeasure(float current_distance)
     _sonarStats.update(Scalarf(d));
     _time_last_sonar = _timeStamp;
     
+    // use fault detection only if sonar is initialized
     if(_sonarInitialized) {
         
-        double beta = d - _est_distance;
+        // calculate differenz between current value and estimated value
+        double beta = abs(d - _est_distance);
         
         //float cov = _sub_sonar->get().covariance;
         //TODO: use parameter here
         
-        //normal stddev for sonar is 0.05
-        //TODO: does this have to change over time?
+        /*
+         normal stddev for sonar is 0.05
+         TODO: does this have to change over time?
+         
+         with stddev 0.05 -> fault detection at 0.148m
+         with stddev 0.1 -> fault detection at 0.297m
+         */
         double stddev = 0.1f;
         
+        // if fault is detected -> return invalid
         if (beta > (sqrt(BETA_TABLE[n_y_sonar]) * stddev)) {
             return -1;
         }
     }
     
+    // return valid distance
     return d;
 }
 
@@ -144,6 +154,7 @@ void ADCPublisher::sonarCorrect(float current_distance)
     // measure
     float distance = sonarMeasure(current_distance);
     
+    // if distance is not valid -> return
     if (distance < 0){ return; }
     
     // use moving average
@@ -166,6 +177,7 @@ void ADCPublisher::sonarCorrect(float current_distance)
         return;
     }
    
+    // publish value
     px4::px4_collision collision_msg;
     collision_msg.data().timestamp = px4::get_time_micros();
     collision_msg.data().front = distance;

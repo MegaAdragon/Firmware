@@ -63,6 +63,7 @@ ADCPublisher::ADCPublisher() :
     _maCount(0),
     _est_distance(0)
 {
+    // fill buffer for the filter with zeros
     int i;
     for(i = 0; i<5; i++) {
         _maList[i] = 0;
@@ -77,6 +78,7 @@ int ADCPublisher::main()
     ssize_t nbytes;
     struct adc_msg_s sample[10];
     
+    // open file handle for ADC
     int fd = open("/dev/adc0", O_RDONLY);
     if (fd < 0)
     {
@@ -92,10 +94,7 @@ int ADCPublisher::main()
         readsize = 10 * sizeof(struct adc_msg_s);
         nbytes = read(fd, sample, readsize);
         
-
-		/* Publish example message */
-		px4_adc_sonar adc_sonar_msg;
-		adc_sonar_msg.data().timestamp = px4::get_time_micros();
+        px4_adc_sonar adc_sonar_msg;
         
         if(nbytes > 0) {
             int nsamples = nbytes / sizeof(struct adc_msg_s);
@@ -113,6 +112,7 @@ int ADCPublisher::main()
                      i, sample[i].am_channel, sample[i].am_data);
                      */
                     
+                    //TODO: use parameter here
                     if(sample[i].am_channel == 14)
                     {
                         
@@ -122,6 +122,7 @@ int ADCPublisher::main()
                         adc_sonar_msg.data().raw_value = sample[i].am_data;
                         adc_sonar_msg.data().distance = float(((sample[i].am_data/6.4) * 2.54)/100);
                         
+                        // filter for sonar
                         if (!_sonarInitialized) {
                             sonarInit(float(((sample[i].am_data/6.4) * 2.54)/100));
                             
@@ -137,7 +138,8 @@ int ADCPublisher::main()
             PX4_ERR("ADC read failed");
         }
         
-		//PX4_INFO("adc sonar: %" PRIu64, adc_sonar_msg.data().timestamp);
+        // publish data
+        adc_sonar_msg.data().timestamp = px4::get_time_micros();
 		_adc_sonar_pub->publish(adc_sonar_msg);
 
 	}
