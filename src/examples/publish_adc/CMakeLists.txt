@@ -38,6 +38,7 @@ px4_add_module(
 		publish_adc_main.cpp
 		publish_adc.cpp
 		calculate_collisionValues.cpp
+		params.c
 	DEPENDS
 		platforms__common
 	)

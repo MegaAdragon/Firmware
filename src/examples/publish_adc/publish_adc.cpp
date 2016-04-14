@@ -54,8 +54,10 @@ ADCPublisher::ADCPublisher() :
 	_n(appState),
 	_adc_sonar_pub(_n.advertise<px4_adc_sonar>()),
     _collision_pub(_n.advertise<px4_collision>()),
-    _sonar_z_stddev(this, "SNR_Z"),
-    _sonar_z_offset(this, "SNR_OFF_Z"),
+    _sonar_stddev(this, "SNR_DEV"),
+    _filter_length_param(this, "SNR_FIL_LEN"),
+    _adc_channel(this, "SNR_ADC_CH"),
+    _filter_length(_filter_length_param.get()),
     _sonarStats(this, ""),
     _timeStamp(hrt_absolute_time()),
     _time_last_sonar(0),
@@ -65,7 +67,7 @@ ADCPublisher::ADCPublisher() :
 {
     // fill buffer for the filter with zeros
     int i;
-    for(i = 0; i<FILTER_LENGTH; i++) {
+    for(i = 0; i<_filter_length; i++) {
         _maList[i] = 0;
     }
 }
@@ -112,8 +114,7 @@ int ADCPublisher::main()
                      i, sample[i].am_channel, sample[i].am_data);
                      */
                     
-                    //TODO: use parameter here
-                    if(sample[i].am_channel == 14)
+                    if(sample[i].am_channel == _adc_channel.get())
                     {
                         
                         //PX4_INFO("%d: channel: %d value: %d\n", i, sample[i].am_channel, sample[i].am_data);

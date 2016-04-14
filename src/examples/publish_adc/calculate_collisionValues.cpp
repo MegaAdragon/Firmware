@@ -72,12 +72,12 @@ void ADCPublisher::sonarInit(float current_distance)
     _maList[_maCount] = distance;
     _maCount ++;
     
-    if(_maCount > FILTER_LENGTH - 1){
+    if(_maCount > _filter_length - 1){
         _maCount = 0;
     }
     
     // if init is finished
-    if (_sonarStats.getCount() > FILTER_LENGTH) {
+    if (_sonarStats.getCount() > _filter_length) {
         /*
          mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] sonar init "
          "mean %d cm std %d cm",
@@ -87,12 +87,12 @@ void ADCPublisher::sonarInit(float current_distance)
         
         // determine estimated distance for reference
         float sum = 0;
-        for(i=0; i<FILTER_LENGTH; i++){
+        for(i=0; i<_filter_length; i++){
             sum += float(_maList[i]);
         }
         
         if(sum > 0) {
-            _est_distance = sum / FILTER_LENGTH;
+            _est_distance = sum / _filter_length;
         }
         else { return; } // if buffer is empty return
         
@@ -143,7 +143,7 @@ float ADCPublisher::sonarMeasure(float current_distance)
      with stddev 0.05 -> fault detection at 0.148m
      with stddev 0.1 -> fault detection at 0.297m
      */
-    double stddev = 0.1f;
+    double stddev = _sonar_stddev.get();
     
     // if fault is detected -> return invalid
     if (beta > (sqrt(BETA_TABLE[n_y_sonar]) * stddev)) {
@@ -170,17 +170,17 @@ void ADCPublisher::sonarCorrect(float current_distance)
     _maList[_maCount] = distance;
     _maCount ++;
     
-    if(_maCount > FILTER_LENGTH - 1){
+    if(_maCount > _filter_length - 1){
         _maCount = 0;
     }
     
     float sum = 0;
-    for(i=0; i<FILTER_LENGTH; i++){
+    for(i=0; i<_filter_length; i++){
         sum += float(_maList[i]);
     }
     
     if(sum > 0) {
-        distance = sum / FILTER_LENGTH;
+        distance = sum / _filter_length;
     }
     else {
         return;

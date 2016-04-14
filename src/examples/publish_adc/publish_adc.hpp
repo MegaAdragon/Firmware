@@ -92,8 +92,11 @@ private:
     void sonarCheckTimeout();
     
     // sonar parameters
-    BlockParamFloat  _sonar_z_stddev;
-    BlockParamFloat  _sonar_z_offset;
+    BlockParamFloat  _sonar_stddev;
+    BlockParamInt  _filter_length_param;
+    BlockParamInt  _adc_channel;
+    
+    int  _filter_length;
     
     BlockStats<float, n_y_sonar> _sonarStats;
     
@@ -102,10 +105,8 @@ private:
     
     bool _sonarInitialized;
     
-    static const int FILTER_LENGTH = 10;
-    
     int _maCount;
-    float _maList[FILTER_LENGTH];
+    float _maList[100]; // TODO: should I use dynamic size?
     
     float _est_distance;
     
