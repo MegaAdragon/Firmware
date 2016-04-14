@@ -14,6 +14,28 @@
 PARAM_DEFINE_FLOAT(SNR_DEV, 0.05f);
 
 /**
+ * Sonar minimal distance.
+ *
+ * @group Sonar
+ * @unit m
+ * @min 0.1
+ * @max 10.0
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(SNR_MIN_DIS, 0.2f);
+
+/**
+ * Sonar maximal distance.
+ *
+ * @group Sonar
+ * @unit m
+ * @min 1.0
+ * @max 10.0
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(SNR_MAX_DIS, 6.0f);
+
+/**
  * Length of moving average filter
  *
  * @group Sonar

@@ -56,6 +56,8 @@ ADCPublisher::ADCPublisher() :
     _collision_pub(_n.advertise<px4_collision>()),
     _sonar_stddev(this, "DEV"),
     _filter_length_param(this, "FIL_LEN"),
+    _sonar_min_distance(this, "MIN_DIS"),
+    _sonar_max_distance(this, "MAX_DIS"),
     _adc_channel(this, "ADC_CH"),
     _filter_length(_filter_length_param.get()),
     _sonarStats(this, ""),
@@ -63,6 +65,7 @@ ADCPublisher::ADCPublisher() :
     _time_last_sonar(0),
     _sonarInitialized(false),
     _maCount(0),
+    _est_count(0),
     _est_distance(0)
 {
     // fill buffer for the filter with zeros
@@ -71,8 +74,9 @@ ADCPublisher::ADCPublisher() :
         _maList[i] = 0;
     }
     
-    PX4_INFO("ch: %d, len: %d",
-             _adc_channel.get(), _filter_length);
+    for(i = 0; i<10; i++) {
+        _est_buf[i] = 0;
+    }
 }
 
 px4::AppState ADCPublisher::appState;

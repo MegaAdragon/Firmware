@@ -69,15 +69,15 @@ void ADCPublisher::sonarInit(float current_distance)
     }
     
     // fill buffer with values
-    _maList[_maCount] = distance;
-    _maCount ++;
+    _est_buf[_est_count] = distance;
+    _est_count ++;
     
-    if(_maCount > _filter_length - 1){
-        _maCount = 0;
+    if(_est_count > 9){
+        _est_count = 0;
     }
     
     // if init is finished
-    if (_sonarStats.getCount() > _filter_length) {
+    if (_sonarStats.getCount() > 10) {
         /*
          mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] sonar init "
          "mean %d cm std %d cm",
@@ -85,22 +85,20 @@ void ADCPublisher::sonarInit(float current_distance)
          int(100 * _sonarStats.getStdDev()(0)));
          */
         
-        // determine estimated distance for reference
         float sum = 0;
-        for(i=0; i<_filter_length; i++){
-            sum += float(_maList[i]);
+        for(i=0; i<10; i++){
+            sum += float(_est_buf[i]);
         }
         
         if(sum > 0) {
-            _est_distance = sum / _filter_length;
+            _est_distance = sum / 10;
         }
-        else { return; } // if buffer is empty return
+        else { return; }
         
-        PX4_INFO("init");
-        
+        return;
         _sonarInitialized = true;
     }
-
+    
 }
 
 float ADCPublisher::sonarMeasure(float current_distance)
@@ -109,13 +107,12 @@ float ADCPublisher::sonarMeasure(float current_distance)
     float d = current_distance;
     float eps = 0.01f;
     /*
-    float min_dist = _sub_sonar->get().min_distance + eps;
-    float max_dist = _sub_sonar->get().max_distance - eps;
+     float min_dist = _sub_sonar->get().min_distance + eps;
+     float max_dist = _sub_sonar->get().max_distance - eps;
      */
     
-    // TODO: use parameters here
-    float min_dist = float(0.2) + eps;
-    float max_dist = float(6.0) - eps;
+    float min_dist = _sonar_min_distance.get() + eps;
+    float max_dist = _sonar_min_distance.get() - eps;
     
     // check for bad data
     if (d > max_dist || d < min_dist) {
@@ -128,29 +125,29 @@ float ADCPublisher::sonarMeasure(float current_distance)
     
     // use fault detection only if sonar is initialized
     
-    
-    
-    // calculate differenz between current value and estimated value
-    double beta = fabs(d - _est_distance);
-    
-    //float cov = _sub_sonar->get().covariance;
-    //TODO: use parameter here
-    
-    /*
-     normal stddev for sonar is 0.05
-     TODO: does this have to change over time?
-     
-     with stddev 0.05 -> fault detection at 0.148m
-     with stddev 0.1 -> fault detection at 0.297m
-     */
-    double stddev = _sonar_stddev.get();
-    
-    // if fault is detected -> return invalid
-    if (beta > (sqrt(BETA_TABLE[n_y_sonar]) * stddev)) {
-        //PX4_INFO("sonar fault %5.2f | %5.2f | %5.2f | %5.2f", double(d), double(_est_distance), beta, (sqrt(BETA_TABLE[n_y_sonar]) * stddev));
-        //return -1;
+    if (_sonarInitialized)
+    {
+        // calculate differenz between current value and estimated value
+        double beta = fabs(d - _est_distance);
+        
+        //float cov = _sub_sonar->get().covariance;
+        //TODO: use parameter here
+        
+        /*
+         normal stddev for sonar is 0.05
+         TODO: does this have to change over time?
+         
+         with stddev 0.05 -> fault detection at 0.148m
+         with stddev 0.1 -> fault detection at 0.297m
+         */
+        double stddev = _sonar_stddev.get();
+        
+        // if fault is detected -> return invalid
+        if (beta > (sqrt(BETA_TABLE[n_y_sonar]) * stddev)) {
+            PX4_INFO("sonar fault %5.2f | %5.2f | %5.2f | %5.2f", double(d), double(_est_distance), beta, (sqrt(BETA_TABLE[n_y_sonar]) * stddev));
+            return -1;
+        }
     }
-    
     
     // return valid distance
     return d;
@@ -163,8 +160,29 @@ void ADCPublisher::sonarCorrect(float current_distance)
     // measure
     float distance = sonarMeasure(current_distance);
     
+    _est_buf[_est_count] = distance;
+    _est_count ++;
+    
+    if(_est_count > 9){
+        _est_count = 0;
+    }
+    
     // if distance is not valid -> return
-    if (distance < 0){ return; }
+    if (distance < 0) {
+        
+        float sum = 0;
+        for(i=0; i<10; i++){
+            sum += float(_est_buf[i]);
+        }
+        
+        if(sum > 0) {
+            _est_distance = sum / 10;
+        }
+        else { return; }
+        
+        return;
+        
+    }
     
     // use moving average
     _maList[_maCount] = distance;
@@ -182,19 +200,17 @@ void ADCPublisher::sonarCorrect(float current_distance)
     if(sum > 0) {
         distance = sum / _filter_length;
     }
-    else {
-        return;
-    }
-   
+    else { return; }
+    
     // publish value
     px4::px4_collision collision_msg;
     collision_msg.data().timestamp = px4::get_time_micros();
     collision_msg.data().front = distance;
-        
+    
     _est_distance = distance;
     //PX4_INFO("publish %5.2f", double(_x(X_tz)));
     //PX4_INFO("publish2 %5.2f",double(y(0)));
-        
+    
     _collision_pub->publish(collision_msg);
     
 }
