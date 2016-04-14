@@ -39,19 +39,17 @@
  */
 #include <px4.h>
 
-int sub_main(int argc, char **argv);
-
 using namespace px4;
 
 void adc_sonar_callback_function(const px4_adc_sonar &msg);
 void collision_callback_function(const px4_collision &msg);
 
-class SubscriberExample
+class SubscribeSonar
 {
 public:
-	SubscriberExample();
+	SubscribeSonar();
 
-	~SubscriberExample() {};
+	~SubscribeSonar() {};
 
 	void spin() {_n.spin();}
 

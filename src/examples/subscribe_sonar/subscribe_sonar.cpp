@@ -37,7 +37,7 @@
  * @author Dominik Zipperle
  */
 
-#include "subscribe_sonar.h"
+#include "subscribe_sonar.hpp"
 
 using namespace px4;
 
@@ -55,7 +55,7 @@ void collision_callback_function(const px4_collision &msg)
     /* TODO: Do something with the collision value */
 }
 
-SubscriberExample::SubscriberExample() :
+SubscribeSonar::SubscribeSonar() :
 	_n(_appState)
 {
 	/* Do some subscriptions */

@@ -36,7 +36,6 @@ px4_add_module(
 	STACK_MAIN 2400
 	SRCS
 		subscribe_sonar_main.cpp
-		subscribe_sonar_start_nuttx.cpp
 		subscribe_sonar.cpp
 	DEPENDS
 		platforms__common
