@@ -32,68 +32,37 @@
  ****************************************************************************/
 
 /**
- * @file subscriber_start_nuttx.cpp
+ * @file subscribe_sonar.cpp
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Dominik Zipperle
  */
-#include <string.h>
-#include <cstdlib>
-#include <systemlib/err.h>
-#include <systemlib/systemlib.h>
 
-extern bool thread_running;
-int daemon_task;             /**< Handle of deamon task / thread */
-namespace px4
-{
-bool task_should_exit = false;
-}
+#include "subscribe_sonar.h"
+
 using namespace px4;
 
-extern int main(int argc, char **argv);
-
-extern "C" __EXPORT int subscriber_main(int argc, char *argv[]);
-int subscriber_main(int argc, char *argv[])
+void adc_sonar_callback_function(const px4_adc_sonar &msg)
 {
-	if (argc < 2) {
-		errx(1, "usage: subscriber {start|stop|status}");
-	}
+	PX4_INFO("I heard: [%" PRIu64 "] + [%5.2f]", msg.data().timestamp, double(msg.data().distance));
+    
+    /* TODO: Do something with the sonar value */
+}
 
-	if (!strcmp(argv[1], "start")) {
+void collision_callback_function(const px4_collision &msg)
+{
+    PX4_INFO("COL: [%" PRIu64 "] + [%5.2f]", msg.data().timestamp, double(msg.data().front));
+    
+    /* TODO: Do something with the collision value */
+}
 
-		if (thread_running) {
-			warnx("already running");
-			/* this is not an error */
-			exit(0);
-		}
+SubscriberExample::SubscriberExample() :
+	_n(_appState)
+{
+	/* Do some subscriptions */
+	/* Function */
+    //TODO: check interval value
+	_n.subscribe<px4_adc_sonar>(adc_sonar_callback_function, 100);
+    _n.subscribe<px4_collision>(collision_callback_function, 100);
 
-		task_should_exit = false;
-
-		daemon_task = px4_task_spawn_cmd("subscriber",
-						 SCHED_DEFAULT,
-						 SCHED_PRIORITY_MAX - 5,
-						 2000,
-						 main,
-						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
-
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-		task_should_exit = true;
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "status")) {
-		if (thread_running) {
-			warnx("is running");
-
-		} else {
-			warnx("not started");
-		}
-
-		exit(0);
-	}
-
-	warnx("unrecognized command");
-	return 1;
+	PX4_INFO("subscribed");
 }

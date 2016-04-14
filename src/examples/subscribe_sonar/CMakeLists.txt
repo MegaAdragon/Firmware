@@ -31,14 +31,13 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE examples__subscriber
-	MAIN subscriber
-	STACK 2400
+	MODULE examples__subscribe_sonar
+	MAIN subscribe_sonar
+	STACK_MAIN 2400
 	SRCS
-		subscriber_main.cpp
-		subscriber_start_nuttx.cpp
-		subscriber_example.cpp
-		subscriber_params.c
+		subscribe_sonar_main.cpp
+		subscribe_sonar_start_nuttx.cpp
+		subscribe_sonar.cpp
 	DEPENDS
 		platforms__common
 	)

@@ -32,68 +32,37 @@
  ****************************************************************************/
 
 /**
- * @file subscriber_start_nuttx.cpp
+ * @file subscribe_sonar.h
+ * subscribe sonar and collision values
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Dominik Zipperle
  */
-#include <string.h>
-#include <cstdlib>
-#include <systemlib/err.h>
-#include <systemlib/systemlib.h>
+#include <px4.h>
 
-extern bool thread_running;
-int daemon_task;             /**< Handle of deamon task / thread */
-namespace px4
-{
-bool task_should_exit = false;
-}
+int sub_main(int argc, char **argv);
+
 using namespace px4;
 
-extern int main(int argc, char **argv);
+void adc_sonar_callback_function(const px4_adc_sonar &msg);
+void collision_callback_function(const px4_collision &msg);
 
-extern "C" __EXPORT int subscriber_main(int argc, char *argv[]);
-int subscriber_main(int argc, char *argv[])
+class SubscriberExample
 {
-	if (argc < 2) {
-		errx(1, "usage: subscriber {start|stop|status}");
-	}
+public:
+	SubscriberExample();
 
-	if (!strcmp(argv[1], "start")) {
+	~SubscriberExample() {};
 
-		if (thread_running) {
-			warnx("already running");
-			/* this is not an error */
-			exit(0);
-		}
+	void spin() {_n.spin();}
 
-		task_should_exit = false;
+protected:
+	px4::NodeHandle _n;
+	px4::Subscriber<px4_adc_sonar> *_sub_adc_chan;
+    px4::Subscriber<px4_collision> *_sub_collision_chan;
 
-		daemon_task = px4_task_spawn_cmd("subscriber",
-						 SCHED_DEFAULT,
-						 SCHED_PRIORITY_MAX - 5,
-						 2000,
-						 main,
-						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
+	AppState _appState;
 
-		exit(0);
-	}
+	void adc_sonar_callback(const px4_adc_sonar &msg);
+    void collision_callback(const px4_collision &msg);
 
-	if (!strcmp(argv[1], "stop")) {
-		task_should_exit = true;
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "status")) {
-		if (thread_running) {
-			warnx("is running");
-
-		} else {
-			warnx("not started");
-		}
-
-		exit(0);
-	}
-
-	warnx("unrecognized command");
-	return 1;
-}
+};

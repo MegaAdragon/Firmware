@@ -38,11 +38,9 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 #include "subscriber_example.h"
-#include "sub.h"
 bool thread_running = false;     /**< Deamon status flag */
 
-
-int sub_main(int argc, char **argv)
+int main(int argc, char **argv)
 {
 	px4::init(argc, argv, "subscriber");
 

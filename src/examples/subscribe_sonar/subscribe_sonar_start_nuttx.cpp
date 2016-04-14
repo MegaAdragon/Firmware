@@ -32,27 +32,29 @@
  ****************************************************************************/
 
 /**
- * @file subscriber_start_nuttx.cpp
+ * @file subscribe_sonar_start_nuttx.cpp
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Dominik Zipperle
  */
 #include <string.h>
 #include <cstdlib>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
 
-extern bool thread_running;
-int daemon_task;             /**< Handle of deamon task / thread */
+#include "subscribe_sonar.h"
+
+extern bool sub_thread_running;
+
+/* TODO: Do I have to use global variables here ? */
+int sub_daemon_task;             /**< Handle of deamon task / thread */
 namespace px4
 {
-bool task_should_exit = false;
+bool sub_task_should_exit = false;
 }
 using namespace px4;
 
-extern int main(int argc, char **argv);
-
-extern "C" __EXPORT int subscriber_main(int argc, char *argv[]);
-int subscriber_main(int argc, char *argv[])
+extern "C" __EXPORT int subscribe_sonar_main(int argc, char *argv[]);
+int subscribe_sonar_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		errx(1, "usage: subscriber {start|stop|status}");
@@ -60,31 +62,31 @@ int subscriber_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (thread_running) {
+		if (sub_thread_running) {
 			warnx("already running");
 			/* this is not an error */
 			exit(0);
 		}
 
-		task_should_exit = false;
+		sub_task_should_exit = false;
 
-		daemon_task = px4_task_spawn_cmd("subscriber",
+		sub_daemon_task = px4_task_spawn_cmd("subscriber",
 						 SCHED_DEFAULT,
 						 SCHED_PRIORITY_MAX - 5,
 						 2000,
-						 main,
+						 sub_main,
 						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
 
 		exit(0);
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		task_should_exit = true;
+		sub_task_should_exit = true;
 		exit(0);
 	}
 
 	if (!strcmp(argv[1], "status")) {
-		if (thread_running) {
+		if (sub_thread_running) {
 			warnx("is running");
 
 		} else {

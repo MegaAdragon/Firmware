@@ -32,68 +32,23 @@
  ****************************************************************************/
 
 /**
- * @file subscriber_start_nuttx.cpp
+ * @file subscribe_sonar_main.cpp
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Dominik Zipperle
  */
-#include <string.h>
-#include <cstdlib>
-#include <systemlib/err.h>
-#include <systemlib/systemlib.h>
+#include "subscribe_sonar.h"
+bool sub_thread_running = false;     /**< Deamon status flag */
 
-extern bool thread_running;
-int daemon_task;             /**< Handle of deamon task / thread */
-namespace px4
+int sub_main(int argc, char **argv)
 {
-bool task_should_exit = false;
-}
-using namespace px4;
+	px4::init(argc, argv, "subscriber");
 
-extern int main(int argc, char **argv);
+	PX4_INFO("starting");
+	SubscriberExample s;
+	sub_thread_running = true;
+	s.spin();
 
-extern "C" __EXPORT int subscriber_main(int argc, char *argv[]);
-int subscriber_main(int argc, char *argv[])
-{
-	if (argc < 2) {
-		errx(1, "usage: subscriber {start|stop|status}");
-	}
-
-	if (!strcmp(argv[1], "start")) {
-
-		if (thread_running) {
-			warnx("already running");
-			/* this is not an error */
-			exit(0);
-		}
-
-		task_should_exit = false;
-
-		daemon_task = px4_task_spawn_cmd("subscriber",
-						 SCHED_DEFAULT,
-						 SCHED_PRIORITY_MAX - 5,
-						 2000,
-						 main,
-						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
-
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-		task_should_exit = true;
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "status")) {
-		if (thread_running) {
-			warnx("is running");
-
-		} else {
-			warnx("not started");
-		}
-
-		exit(0);
-	}
-
-	warnx("unrecognized command");
-	return 1;
+	PX4_INFO("exiting.");
+	sub_thread_running = false;
+	return 0;
 }

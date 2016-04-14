@@ -41,8 +41,7 @@
 
 using namespace px4;
 
-void adc_sonar_callback_function(const px4_adc_sonar &msg);
-void collision_callback_function(const px4_collision &msg);
+void rc_channels_callback_function(const px4_rc_channels &msg);
 
 class SubscriberExample
 {
@@ -57,12 +56,12 @@ protected:
 	px4::NodeHandle _n;
 	px4::ParameterInt _p_sub_interv;
 	px4::ParameterFloat _p_test_float;
-	px4::Subscriber<px4_adc_sonar> *_sub_adc_chan;
-    px4::Subscriber<px4_collision> *_sub_collision_chan;
+	px4::Subscriber<px4_rc_channels> *_sub_rc_chan;
 
 	AppState _appState;
 
-	void adc_sonar_callback(const px4_adc_sonar &msg);
-    void collision_callback(const px4_collision &msg);
+	void rc_channels_callback(const px4_rc_channels &msg);
+	void vehicle_attitude_callback(const px4_vehicle_attitude &msg);
+	void parameter_update_callback(const px4_parameter_update &msg);
 
 };
