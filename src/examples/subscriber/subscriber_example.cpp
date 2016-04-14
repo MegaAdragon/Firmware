@@ -43,18 +43,9 @@
 
 using namespace px4;
 
-void adc_sonar_callback_function(const px4_adc_sonar &msg)
+void rc_channels_callback_function(const px4_rc_channels &msg)
 {
-	PX4_INFO("I heard: [%" PRIu64 "] + [%5.2f]", msg.data().timestamp, double(msg.data().distance));
-    
-    /* TODO: Do something with the sonar value */
-}
-
-void collision_callback_function(const px4_collision &msg)
-{
-    PX4_INFO("COL: [%" PRIu64 "] + [%5.2f]", msg.data().timestamp, double(msg.data().front));
-    
-    /* TODO: Do something with the sonar value */
+	PX4_INFO("I heard: [%" PRIu64 "]", msg.data().timestamp_last_valid);
 }
 
 SubscriberExample::SubscriberExample() :
@@ -70,8 +61,47 @@ SubscriberExample::SubscriberExample() :
 
 	/* Do some subscriptions */
 	/* Function */
-	_n.subscribe<px4_adc_sonar>(adc_sonar_callback_function, _p_sub_interv.get());
-    _n.subscribe<px4_collision>(collision_callback_function, _p_sub_interv.get());
+	_n.subscribe<px4_rc_channels>(rc_channels_callback_function, _p_sub_interv.get());
+
+	/* No callback */
+	_sub_rc_chan = _n.subscribe<px4_rc_channels>(500);
+
+	/* Class method */
+	_n.subscribe<px4_rc_channels>(&SubscriberExample::rc_channels_callback, this, 1000);
+
+	/* Another class method */
+	_n.subscribe<px4_vehicle_attitude>(&SubscriberExample::vehicle_attitude_callback, this, 1000);
+
+	/* Yet antoher class method */
+	_n.subscribe<px4_parameter_update>(&SubscriberExample::parameter_update_callback, this, 1000);
 
 	PX4_INFO("subscribed");
+}
+
+/**
+ * This tutorial demonstrates simple receipt of messages over the PX4 middleware system.
+ * Also the current value of the _sub_rc_chan subscription is printed
+ */
+void SubscriberExample::rc_channels_callback(const px4_rc_channels &msg)
+{
+	PX4_INFO("rc_channels_callback (method): [%" PRIu64 "]",
+		 msg.data().timestamp_last_valid);
+	PX4_INFO("rc_channels_callback (method): value of _sub_rc_chan: [%" PRIu64 "]",
+		 _sub_rc_chan->data().timestamp_last_valid);
+}
+
+void SubscriberExample::vehicle_attitude_callback(const px4_vehicle_attitude &msg)
+{
+	PX4_INFO("vehicle_attitude_callback (method): [%" PRIu64 "]",
+		 msg.data().timestamp);
+}
+
+void SubscriberExample::parameter_update_callback(const px4_parameter_update &msg)
+{
+	PX4_INFO("parameter_update_callback (method): [%" PRIu64 "]",
+		 msg.data().timestamp);
+	_p_sub_interv.update();
+	PX4_INFO("Param SUB_INTERV = %d", _p_sub_interv.get());
+	_p_test_float.update();
+	PX4_INFO("Param SUB_TESTF = %.3f", (double)_p_test_float.get());
 }
