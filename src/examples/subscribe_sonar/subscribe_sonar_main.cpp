@@ -32,14 +32,12 @@
  ****************************************************************************/
 
 /**
- * @file subscriber_main.cpp
- * Example subscriber for ros and px4
+ * @file subscribe_sonar_main.cpp
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Dominik Zipperle
  */
 #include "subscribe_sonar.h"
-bool thread_running = false;     /**< Deamon status flag */
-
+bool sub_thread_running = false;     /**< Deamon status flag */
 
 int sub_main(int argc, char **argv)
 {
@@ -47,10 +45,10 @@ int sub_main(int argc, char **argv)
 
 	PX4_INFO("starting");
 	SubscriberExample s;
-	thread_running = true;
+	sub_thread_running = true;
 	s.spin();
 
 	PX4_INFO("exiting.");
-	thread_running = false;
+	sub_thread_running = false;
 	return 0;
 }

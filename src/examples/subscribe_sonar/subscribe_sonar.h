@@ -32,10 +32,10 @@
  ****************************************************************************/
 
 /**
- * @file subscriber_example.h
- * Example subscriber for ros and px4
+ * @file subscribe_sonar.h
+ * subscribe sonar and collision values
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Dominik Zipperle
  */
 #include <px4.h>
 

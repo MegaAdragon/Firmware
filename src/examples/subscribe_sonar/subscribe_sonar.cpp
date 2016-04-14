@@ -32,10 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file subscriber_example.cpp
- * Example subscriber for ros and px4
+ * @file subscribe_sonar.cpp
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Dominik Zipperle
  */
 
 #include "subscribe_sonar.h"
@@ -53,7 +52,7 @@ void collision_callback_function(const px4_collision &msg)
 {
     PX4_INFO("COL: [%" PRIu64 "] + [%5.2f]", msg.data().timestamp, double(msg.data().front));
     
-    /* TODO: Do something with the sonar value */
+    /* TODO: Do something with the collision value */
 }
 
 SubscriberExample::SubscriberExample() :

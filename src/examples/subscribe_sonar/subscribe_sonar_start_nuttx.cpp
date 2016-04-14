@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file subscriber_start_nuttx.cpp
+ * @file subscribe_sonar_start_nuttx.cpp
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Dominik Zipperle
  */
 #include <string.h>
 #include <cstdlib>
@@ -43,7 +43,7 @@
 
 #include "subscribe_sonar.h"
 
-extern bool thread_running;
+extern bool sub_thread_running;
 
 /* TODO: Do I have to use global variables here ? */
 int sub_daemon_task;             /**< Handle of deamon task / thread */
@@ -62,7 +62,7 @@ int subscribe_sonar_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "start")) {
 
-		if (thread_running) {
+		if (sub_thread_running) {
 			warnx("already running");
 			/* this is not an error */
 			exit(0);
@@ -86,7 +86,7 @@ int subscribe_sonar_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "status")) {
-		if (thread_running) {
+		if (sub_thread_running) {
 			warnx("is running");
 
 		} else {
