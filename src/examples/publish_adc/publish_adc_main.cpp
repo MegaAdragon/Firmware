@@ -32,25 +32,95 @@
  ****************************************************************************/
 
 /**
- * @file publish_adc_main.cpp
- * main function for publish_adc
+ * @file publish_adc_start_nuttx.cpp
  *
  * @author Dominik Zipperle
  */
+#include <string.h>
+#include <cstdlib>
+#include <systemlib/err.h>
+#include <systemlib/systemlib.h>
+
 #include "publish_adc.hpp"
 
-bool pub_thread_running = false;     /**< Deamon status flag */
+static volatile bool thread_should_exit = false;     /**< Deamon exit flag */
+static volatile bool thread_running = false;     /**< Deamon status flag */
+static int deamon_task;             /**< Handle of deamon task / thread */
 
-int pub_main(int argc, char **argv)
+/**
+ * Deamon management function.
+ */
+extern "C" __EXPORT int publish_adc_main(int argc, char *argv[]);
+
+/**
+ * Mainloop of deamon.
+ */
+int publish_adc_thread_main(int argc, char *argv[]);
+
+/**
+ * The deamon app only briefly exists to start
+ * the background job. The stack size assigned in the
+ * Makefile does only apply to this management task.
+ *
+ * The actual stack size should be set in the call
+ * to task_create().
+ */
+int publish_adc_main(int argc, char *argv[])
 {
-	px4::init(argc, argv, "publish_adc");
+	if (argc < 2) {
+		errx(1, "usage: publish_adc {start|stop|status}");
+	}
 
-	PX4_INFO("starting");
-	ADCPublisher p;
-	pub_thread_running = true;
-	p.main();
+	if (!strcmp(argv[1], "start")) {
 
-	PX4_INFO("exiting.");
-	pub_thread_running = false;
-	return 0;
+		if (thread_running) {
+			warnx("already running");
+			/* this is not an error */
+			exit(0);
+		}
+
+		thread_should_exit = false;
+
+		deamon_task = px4_task_spawn_cmd("publish_adc",
+						 SCHED_DEFAULT,
+						 SCHED_PRIORITY_MAX - 5,
+						 2000,
+						 publish_adc_thread_main,
+						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
+
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "stop")) {
+		thread_should_exit = true;
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "status")) {
+		if (thread_running) {
+			warnx("is running");
+
+		} else {
+			warnx("not started");
+		}
+
+		exit(0);
+	}
+
+	warnx("unrecognized command");
+	return 1;
+}
+
+int publish_adc_thread_main(int argc, char **argv)
+{
+    px4::init(argc, argv, "publish_adc");
+    
+    PX4_INFO("starting");
+    ADCPublisher p;
+    thread_running = true;
+    p.main();
+    
+    PX4_INFO("exiting.");
+    thread_running = false;
+    return 0;
 }

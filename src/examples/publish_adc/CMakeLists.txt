@@ -33,10 +33,9 @@
 px4_add_module(
 	MODULE examples__publish_adc
 	MAIN publish_adc
-	STACK_MAIN 1800
+	STACK_MAIN 2500
 	SRCS
 		publish_adc_main.cpp
-		publish_adc_start_nuttx.cpp
 		publish_adc.cpp
 		calculate_collisionValues.cpp
 	DEPENDS
