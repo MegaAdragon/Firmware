@@ -161,7 +161,7 @@ set(config_module_list
 	#examples/hwtest
 
     examples/publish_adc
-    examples/subscriber
+    examples/subscribe_sonar
 )
 
 set(config_extra_builtin_cmds
