@@ -11,7 +11,7 @@
  * @max 1
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(SNR_DEV, 0.05f);
+PARAM_DEFINE_FLOAT(SNR_DEV, 0.1f);
 
 /**
  * Sonar minimal distance.
@@ -20,7 +20,7 @@ PARAM_DEFINE_FLOAT(SNR_DEV, 0.05f);
  * @unit m
  * @min 0.1
  * @max 10.0
- * @decimal 3
+ * @decimal 8
  */
 PARAM_DEFINE_FLOAT(SNR_MIN_DIS, 0.2f);
 
@@ -31,7 +31,7 @@ PARAM_DEFINE_FLOAT(SNR_MIN_DIS, 0.2f);
  * @unit m
  * @min 1.0
  * @max 10.0
- * @decimal 3
+ * @decimal 8
  */
 PARAM_DEFINE_FLOAT(SNR_MAX_DIS, 6.0f);
 
@@ -42,7 +42,7 @@ PARAM_DEFINE_FLOAT(SNR_MAX_DIS, 6.0f);
  * @min 0
  * @max 20
  */
-PARAM_DEFINE_INT32(SNR_FIL_LEN, 10);
+PARAM_DEFINE_INT32(SNR_FIL_LEN, 5);
 
 /**
  * ADC Channel

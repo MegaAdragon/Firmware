@@ -94,8 +94,8 @@ private:
     // sonar parameters
     BlockParamFloat  _sonar_stddev;
     BlockParamInt  _filter_length_param;
-    BlockParamInt  _sonar_min_distance;
-    BlockParamInt  _sonar_max_distance;
+    BlockParamFloat  _sonar_min_distance;
+    BlockParamFloat _sonar_max_distance;
     BlockParamInt  _adc_channel;
     
     int  _filter_length;
