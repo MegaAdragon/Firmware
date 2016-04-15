@@ -1825,6 +1825,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("NAMED_VALUE_FLOAT", 1.0f);
 		configure_stream("ESTIMATOR_STATUS", 0.5f);
         configure_stream("SONAR", 0.5f);
+        configure_stream("COLLISION", 0.5f);
 		break;
 
 	case MAVLINK_MODE_ONBOARD:

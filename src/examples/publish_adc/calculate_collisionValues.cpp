@@ -78,12 +78,12 @@ void ADCPublisher::sonarInit(float current_distance)
     
     // if init is finished
     if (_sonarStats.getCount() > 10) {
-        /*
-         mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] sonar init "
-         "mean %d cm std %d cm",
-         int(100 * _sonarStats.getMean()(0)),
-         int(100 * _sonarStats.getStdDev()(0)));
-         */
+        
+        mavlink_and_console_log_info(&mavlink_log_pub, "[collision] sonar init "
+                                     "mean %d cm std %d cm",
+                                     int(100 * _sonarStats.getMean()(0)),
+                                     int(100 * _sonarStats.getStdDev()(0)));
+        
         
         float sum = 0;
         for(i=0; i<10; i++){
@@ -95,8 +95,8 @@ void ADCPublisher::sonarInit(float current_distance)
         }
         else { return; }
         
-        return;
         _sonarInitialized = true;
+        return;
     }
     
 }
@@ -112,10 +112,11 @@ float ADCPublisher::sonarMeasure(float current_distance)
      */
     
     float min_dist = _sonar_min_distance.get() + eps;
-    float max_dist = _sonar_min_distance.get() - eps;
+    float max_dist = _sonar_max_distance.get() - eps;
     
     // check for bad data
     if (d > max_dist || d < min_dist) {
+        //PX4_INFO("out of range");
         return -1;
     }
     
@@ -144,7 +145,7 @@ float ADCPublisher::sonarMeasure(float current_distance)
         
         // if fault is detected -> return invalid
         if (beta > (sqrt(BETA_TABLE[n_y_sonar]) * stddev)) {
-            PX4_INFO("sonar fault %5.2f | %5.2f | %5.2f | %5.2f", double(d), double(_est_distance), beta, (sqrt(BETA_TABLE[n_y_sonar]) * stddev));
+            //PX4_INFO("sonar fault %5.2f | %5.2f | %5.2f | %5.2f", double(d), double(_est_distance), beta, (sqrt(BETA_TABLE[n_y_sonar]) * stddev));
             return -1;
         }
     }
@@ -153,6 +154,8 @@ float ADCPublisher::sonarMeasure(float current_distance)
     return d;
 }
 
+static int error_count = 0;
+
 void ADCPublisher::sonarCorrect(float current_distance)
 {
     int i;
@@ -160,29 +163,35 @@ void ADCPublisher::sonarCorrect(float current_distance)
     // measure
     float distance = sonarMeasure(current_distance);
     
-    _est_buf[_est_count] = distance;
+    _est_buf[_est_count] = current_distance;
     _est_count ++;
     
-    if(_est_count > 9){
+    if(_est_count > 4){
         _est_count = 0;
     }
     
     // if distance is not valid -> return
     if (distance < 0) {
         
-        float sum = 0;
-        for(i=0; i<10; i++){
-            sum += float(_est_buf[i]);
+        if(error_count > 2)
+        {
+            float sum = 0;
+            for(i=0; i<5; i++){
+                sum += float(_est_buf[i]);
+            }
+            
+            if(sum > 0) {
+                _est_distance = sum / 5;
+            }
+            else { return; }
         }
         
-        if(sum > 0) {
-            _est_distance = sum / 10;
-        }
-        else { return; }
-        
+        error_count++;
         return;
         
     }
+    
+    error_count = 0;
     
     // use moving average
     _maList[_maCount] = distance;

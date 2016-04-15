@@ -94,6 +94,7 @@ int ADCPublisher::main()
         PX4_ERR("ADC Open failed");
     }
     
+    // 10 samples per second
 	px4::Rate loop_rate(10);
 
 	while (!appState.exitRequested()) {

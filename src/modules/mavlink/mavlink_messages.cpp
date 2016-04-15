@@ -47,6 +47,7 @@
 #include <lib/geo/geo.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/adc_sonar.h>
+#include <uORB/topics/collision.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_gps_position.h>
@@ -2879,6 +2880,65 @@ protected:
     }
 };
 
+class MavlinkStreamCollision: public MavlinkStream
+{
+public:
+    const char *get_name() const
+    {
+        return MavlinkStreamSonar::get_name_static();
+    }
+    
+    static const char *get_name_static()
+    {
+        return "COLLISION";
+    }
+    
+    uint8_t get_id()
+    {
+        return MAVLINK_MSG_ID_COLLISION;
+    }
+    
+    static MavlinkStream *new_instance(Mavlink *mavlink)
+    {
+        return new MavlinkStreamCollision(mavlink);
+    }
+    
+    unsigned get_size()
+    {
+        return _sub->is_published() ? (MAVLINK_MSG_ID_COLLISION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+    }
+    
+private:
+    MavlinkOrbSubscription *_sub;
+    uint64_t _time;
+    
+    /* do not allow top copying this class */
+    MavlinkStreamCollision(MavlinkStreamCollision &);
+    MavlinkStreamCollision& operator = (const MavlinkStreamCollision &);
+    
+protected:
+    explicit MavlinkStreamCollision(Mavlink *mavlink) : MavlinkStream(mavlink),
+    _sub(_mavlink->add_orb_subscription(ORB_ID(collision))),
+    _time(0)
+    {}
+    
+    void send(const hrt_abstime t)
+    {
+        struct collision_s collision;
+        
+        if (_sub->update(&_time, &collision)) {
+            
+            mavlink_collision_t msg;
+            
+            msg.usec = collision.timestamp;
+            msg.front = collision.front;
+            
+            _mavlink->send_message(MAVLINK_MSG_ID_COLLISION, &msg);
+        }
+    }
+};
+
+
 const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static),
 	new StreamListItem(&MavlinkStreamStatustext::new_instance, &MavlinkStreamStatustext::get_name_static),
@@ -2920,6 +2980,7 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamExtendedSysState::new_instance, &MavlinkStreamExtendedSysState::get_name_static),
 	new StreamListItem(&MavlinkStreamAltitude::new_instance, &MavlinkStreamAltitude::get_name_static),
     new StreamListItem(&MavlinkStreamSonar::new_instance, &MavlinkStreamSonar::get_name_static),
+    new StreamListItem(&MavlinkStreamCollision::new_instance, &MavlinkStreamCollision::get_name_static),
     
 	nullptr
 };
