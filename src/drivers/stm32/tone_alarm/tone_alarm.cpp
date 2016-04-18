@@ -390,8 +390,11 @@ ToneAlarm::ToneAlarm() :
 {
 	// enable debug() calls
 	//_debug_enabled = true;
-	_default_tunes[TONE_STARTUP_TUNE] = "MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc";		// startup tune
-	_default_tunes[TONE_ERROR_TUNE] = "MBT200a8a8a8PaaaP";						// ERROR tone
+	
+    _default_tunes[TONE_STARTUP_TUNE] = "T200L4O4FO4FO4FP16MNL2O4B-.O5F.L8O5E-O5DO5CL2O5B-.L4O5F.L8O5E-O5DO5CL2O5B-.L4O5F.L8O5E-O5DO5E-L1O5C"; //startup tune (Star Wars Theme)
+    //_default_tunes[TONE_STARTUP_TUNE] = "MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc";		// startup tune
+	
+    _default_tunes[TONE_ERROR_TUNE] = "MBT200a8a8a8PaaaP";						// ERROR tone
 	_default_tunes[TONE_NOTIFY_POSITIVE_TUNE] = "MFT200e8a8a";					// Notify Positive tone
 	_default_tunes[TONE_NOTIFY_NEUTRAL_TUNE] = "MFT200e8e";						// Notify Neutral tone
 	_default_tunes[TONE_NOTIFY_NEGATIVE_TUNE] = "MFT200e8c8e8c8e8c8";				// Notify Negative tone

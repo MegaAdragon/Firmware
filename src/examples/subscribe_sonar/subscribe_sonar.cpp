@@ -52,7 +52,13 @@ void collision_callback_function(const px4_collision &msg)
 {
     PX4_INFO("COL: [%" PRIu64 "] + [%5.2f]", msg.data().timestamp, double(msg.data().front));
     
-    /* TODO: Do something with the collision value */
+    /* Playing Alarm Signals when front Sonar is getting close to obstacles */
+    if(double(msg.data().front) <= 0.8)
+    {
+            int buzzer = ::open(TONEALARM0_DEVICE_PATH, O_WRONLY);
+            ::ioctl(buzzer, TONE_SET_ALARM, TONE_NOTIFY_NEGATIVE_TUNE);
+            ::close(buzzer);
+    }    
 }
 
 SubscribeSonar::SubscribeSonar() :
