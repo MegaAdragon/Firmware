@@ -39,13 +39,25 @@
 
 #include "subscribe_sonar.hpp"
 #include <drivers/drv_tone_alarm.h>
-#include <modules/commander/commander_helper.h>
+#include <drivers/drv_rgbled.h>
+#include <drivers/drv_hrt.h>
 
+#include "DevMgr.hpp"
+
+using namespace DriverFramework;
 using namespace px4;
+
+static DevHandle h_rgbleds;
+static DevHandle h_buzzer;
+
+static const long tone_length = 900000;
+static hrt_abstime tune_end = 0;
+
+static bool reset_LED = false;
 
 void adc_sonar_callback_function(const px4_adc_sonar &msg)
 {
-	PX4_INFO("I heard: [%" PRIu64 "] + [%5.2f]", msg.data().timestamp, double(msg.data().distance));
+    PX4_INFO("I heard: [%" PRIu64 "] + [%5.2f]", msg.data().timestamp, double(msg.data().distance));
     
     /* TODO: Do something with the sonar value */
 }
@@ -55,23 +67,46 @@ void collision_callback_function(const px4_collision &msg)
     PX4_INFO("COL: [%" PRIu64 "] + [%5.2f]", msg.data().timestamp, double(msg.data().front));
     
     /* Playing Alarm Signals when front Sonar is getting close to obstacles */
-    if(double(msg.data().front) <= 0.8)
+    if(double(msg.data().front) <= 0.8 && (hrt_absolute_time() > tune_end))
     {
-        tune_negative(true);
+        tune_end = hrt_absolute_time() + tone_length;
+        
+        /* buzzer patterns are ordered by
+         * priority, with a higher-priority pattern interrupting any
+         * lower-priority pattern that might be playing.
+         */
+        h_buzzer.ioctl(TONE_SET_ALARM, TONE_NOTIFY_NEGATIVE_TUNE);
+        h_rgbleds.ioctl(RGBLED_SET_COLOR, RGBLED_COLOR_RED);
+        h_rgbleds.ioctl(RGBLED_SET_PATTERN, RGBLED_MODE_BLINK_FAST);
+        reset_LED = true;
+    }
+    /* reset LED to default mode */
+    else if (reset_LED && (hrt_absolute_time() > tune_end)) {
+        h_rgbleds.ioctl(RGBLED_SET_COLOR, RGBLED_COLOR_BLUE);
+        h_rgbleds.ioctl(RGBLED_SET_PATTERN, RGBLED_MODE_BREATHE);
+        reset_LED = false;
     }
 }
 
 SubscribeSonar::SubscribeSonar() :
-	_n(_appState)
+_n(_appState)
 {
-	/* Do some subscriptions */
-	/* Function */
-    //TODO: check interval value
-    buzzer_init();
-    led_init();
+    DevMgr::getHandle(TONEALARM0_DEVICE_PATH, h_buzzer);
     
-	_n.subscribe<px4_adc_sonar>(adc_sonar_callback_function, 100);
+    if (!h_buzzer.isValid()) {
+        PX4_WARN("Buzzer: px4_open fail\n");
+    }
+    
+    DevMgr::getHandle(RGBLED0_DEVICE_PATH, h_rgbleds);
+    
+    if (!h_rgbleds.isValid()) {
+        PX4_WARN("No RGB LED found at " RGBLED0_DEVICE_PATH);
+    }
+    
+    /* Do some subscriptions */
+    //TODO: check interval value
+    _n.subscribe<px4_adc_sonar>(adc_sonar_callback_function, 100);
     _n.subscribe<px4_collision>(collision_callback_function, 100);
-
-	PX4_INFO("subscribed");
+    
+    PX4_INFO("subscribed");
 }
