@@ -38,7 +38,6 @@
  * @author Dominik Zipperle
  */
 #include <px4.h>
-#include <drivers/drv_tone_alarm.h>
 
 using namespace px4;
 

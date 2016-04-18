@@ -38,6 +38,8 @@
  */
 
 #include "subscribe_sonar.hpp"
+#include <drivers/drv_tone_alarm.h>
+#include <modules/commander/commander_helper.h>
 
 using namespace px4;
 
@@ -55,10 +57,8 @@ void collision_callback_function(const px4_collision &msg)
     /* Playing Alarm Signals when front Sonar is getting close to obstacles */
     if(double(msg.data().front) <= 0.8)
     {
-            int buzzer = ::open(TONEALARM0_DEVICE_PATH, O_WRONLY);
-            ::ioctl(buzzer, TONE_SET_ALARM, TONE_NOTIFY_NEGATIVE_TUNE);
-            ::close(buzzer);
-    }    
+        tune_negative(true);
+    }
 }
 
 SubscribeSonar::SubscribeSonar() :
@@ -67,6 +67,9 @@ SubscribeSonar::SubscribeSonar() :
 	/* Do some subscriptions */
 	/* Function */
     //TODO: check interval value
+    buzzer_init();
+    led_init();
+    
 	_n.subscribe<px4_adc_sonar>(adc_sonar_callback_function, 100);
     _n.subscribe<px4_collision>(collision_callback_function, 100);
 
