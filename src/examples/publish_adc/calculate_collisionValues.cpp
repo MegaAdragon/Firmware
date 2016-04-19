@@ -1,4 +1,3 @@
-
 /****************************************************************************
  *
  *   Copyright (C) 2014 PX4 Development Team. All rights reserved.
@@ -155,6 +154,8 @@ float ADCPublisher::sonarMeasure(float current_distance)
 }
 
 static int error_count = 0;
+static double accumulator = 0;
+static const double alpha = 0.8;
 
 void ADCPublisher::sonarCorrect(float current_distance)
 {
@@ -193,6 +194,11 @@ void ADCPublisher::sonarCorrect(float current_distance)
     
     error_count = 0;
     
+    // use exponential average
+    accumulator = (alpha * double(distance)) + (1.0 - alpha) * accumulator;
+    distance = accumulator;
+    
+    /*
     // use moving average
     _maList[_maCount] = distance;
     _maCount ++;
@@ -210,6 +216,7 @@ void ADCPublisher::sonarCorrect(float current_distance)
         distance = sum / _filter_length;
     }
     else { return; }
+     */
     
     // publish value
     px4::px4_collision collision_msg;
