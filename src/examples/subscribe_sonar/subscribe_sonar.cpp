@@ -67,7 +67,7 @@ void collision_callback_function(const px4_collision &msg)
     PX4_INFO("COL: [%" PRIu64 "] + [%5.2f]", msg.data().timestamp, double(msg.data().front));
     
     /* Playing Alarm Signals when front Sonar is getting close to obstacles */
-    if(double(msg.data().front) <= 0.8 && (hrt_absolute_time() > tune_end))
+    if(double(msg.data().front) <= 1.0 && (hrt_absolute_time() > tune_end))
     {
         tune_end = hrt_absolute_time() + tone_length;
         
@@ -82,6 +82,7 @@ void collision_callback_function(const px4_collision &msg)
     }
     /* reset LED to default mode */
     else if (reset_LED && (hrt_absolute_time() > tune_end)) {
+        // TODO: reset to previous LED color and pattern
         h_rgbleds.ioctl(RGBLED_SET_COLOR, RGBLED_COLOR_BLUE);
         h_rgbleds.ioctl(RGBLED_SET_PATTERN, RGBLED_MODE_BREATHE);
         reset_LED = false;
