@@ -155,7 +155,7 @@ float ADCPublisher::sonarMeasure(float current_distance)
 
 static int error_count = 0;
 static double accumulator = 0;
-static const double alpha = 0.8;
+static const double alpha = 0.75;
 
 void ADCPublisher::sonarCorrect(float current_distance)
 {
