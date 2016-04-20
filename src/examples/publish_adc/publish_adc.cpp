@@ -40,33 +40,40 @@
  */
 
 #include "publish_adc.hpp"
+#include <drivers/drv_adc.h>
+
+#include "DevMgr.hpp"
+
+using namespace DriverFramework;
 
 struct adc_msg_s {
     uint8_t      am_channel;               /* The 8-bit ADC Channel */
     int32_t      am_data;                  /* ADC convert result (4 bytes) */
 } __attribute__((packed));
 
+static DevHandle h_adc;
+
 using namespace px4;
 
 
 ADCPublisher::ADCPublisher() :
-    SuperBlock(NULL, "SNR"),
-	_n(appState),
-	_adc_sonar_pub(_n.advertise<px4_adc_sonar>()),
-    _collision_pub(_n.advertise<px4_collision>()),
-    _sonar_stddev(this, "DEV"),
-    _filter_length_param(this, "FIL_LEN"),
-    _sonar_min_distance(this, "MIN_DIS"),
-    _sonar_max_distance(this, "MAX_DIS"),
-    _adc_channel(this, "ADC_CH"),
-    _filter_length(_filter_length_param.get()),
-    _sonarStats(this, ""),
-    _timeStamp(hrt_absolute_time()),
-    _time_last_sonar(0),
-    _sonarInitialized(false),
-    _maCount(0),
-    _est_count(0),
-    _est_distance(0)
+SuperBlock(NULL, "SNR"),
+_n(appState),
+_adc_sonar_pub(_n.advertise<px4_adc_sonar>()),
+_collision_pub(_n.advertise<px4_collision>()),
+_sonar_stddev(this, "DEV"),
+_filter_length_param(this, "FIL_LEN"),
+_sonar_min_distance(this, "MIN_DIS"),
+_sonar_max_distance(this, "MAX_DIS"),
+_adc_channel(this, "ADC_CH"),
+_filter_length(_filter_length_param.get()),
+_sonarStats(this, ""),
+_timeStamp(hrt_absolute_time()),
+_time_last_sonar(0),
+_sonarInitialized(false),
+_maCount(0),
+_est_count(0),
+_est_distance(0)
 {
     // fill buffer for the filter with zeros
     int i;
@@ -83,75 +90,62 @@ px4::AppState ADCPublisher::appState;
 
 int ADCPublisher::main()
 {
-    size_t readsize;
-    ssize_t nbytes;
-    struct adc_msg_s sample[10];
+    /* make space for a maximum of twelve channels (to ensure reading all channels at once) */
+    struct adc_msg_s buf_adc[12];
     
-    // open file handle for ADC
-    int fd = open("/dev/adc0", O_RDONLY);
-    if (fd < 0)
-    {
-        PX4_ERR("ADC Open failed");
+    DevMgr::getHandle(ADC0_DEVICE_PATH, h_adc);
+    
+    if (!h_adc.isValid()) {
+        PX4_WARN("ADC Open failed");
     }
     
     // 10 samples per second
-	px4::Rate loop_rate(10);
-
-	while (!appState.exitRequested()) {
-		loop_rate.sleep();
-		_n.spinOnce();
+    px4::Rate loop_rate(10);
+    
+    while (!appState.exitRequested()) {
+        loop_rate.sleep();
+        _n.spinOnce();
         
-        readsize = 10 * sizeof(struct adc_msg_s);
-        nbytes = read(fd, sample, readsize);
+        int ret = h_adc.read(&buf_adc, sizeof(buf_adc));
         
         px4_adc_sonar adc_sonar_msg;
         
-        if(nbytes > 0) {
-            int nsamples = nbytes / sizeof(struct adc_msg_s);
-            if (nsamples * sizeof(struct adc_msg_s) != nbytes)
-            {
-                PX4_INFO("adc_main: read size=%d is not a multiple of sample size=%d, Ignoring\n",
-                         nbytes, sizeof(struct adc_msg_s));
-            }
-            else
-            {
-                for (int i = 0; i < nsamples ; i++)
+        if (ret >= (int)sizeof(buf_adc[0])) {
+            
+            for (unsigned i = 0; i < ret / sizeof(buf_adc[0]); i++) {
+                
+                /*
+                 PX4_INFO("%d: channel: %d value: %d\n",
+                 i, sample[i].am_channel, sample[i].am_data);
+                 */
+                
+                if(buf_adc[i].am_channel == _adc_channel.get())
                 {
-                    /*
-                     PX4_INFO("%d: channel: %d value: %d\n",
-                     i, sample[i].am_channel, sample[i].am_data);
-                     */
                     
-                    if(sample[i].am_channel == _adc_channel.get())
-                    {
+                    //PX4_INFO("%d: channel: %d value: %d\n", i, sample[i].am_channel, sample[i].am_data);
+                    
+                    adc_sonar_msg.data().id = 1;
+                    adc_sonar_msg.data().raw_value = buf_adc[i].am_data;
+                    adc_sonar_msg.data().distance = float(((buf_adc[i].am_data/6.4) * 2.54)/100);
+                    
+                    // filter for sonar
+                    if (!_sonarInitialized) {
+                        sonarInit(float(((buf_adc[i].am_data/6.4) * 2.54)/100));
                         
-                        //PX4_INFO("%d: channel: %d value: %d\n", i, sample[i].am_channel, sample[i].am_data);
-                        
-                        adc_sonar_msg.data().id = 1;
-                        adc_sonar_msg.data().raw_value = sample[i].am_data;
-                        adc_sonar_msg.data().distance = float(((sample[i].am_data/6.4) * 2.54)/100);
-                        
-                        // filter for sonar
-                        if (!_sonarInitialized) {
-                            sonarInit(float(((sample[i].am_data/6.4) * 2.54)/100));
-                            
-                        } else {
-                            sonarCorrect(float(((sample[i].am_data/6.4) * 2.54)/100));
-                        }
-                        
+                    } else {
+                        sonarCorrect(float(((buf_adc[i].am_data/6.4) * 2.54)/100));
                     }
+                    
+                    // publish data
+                    adc_sonar_msg.data().timestamp = px4::get_time_micros();
+                    _adc_sonar_pub->publish(adc_sonar_msg);
+                    
                 }
             }
         }
-        else {
-            PX4_ERR("ADC read failed");
-        }
-        
-        // publish data
-        adc_sonar_msg.data().timestamp = px4::get_time_micros();
-		_adc_sonar_pub->publish(adc_sonar_msg);
-
-	}
-
-	return 0;
+    }
+    
+    return 0;
 }
+
+
